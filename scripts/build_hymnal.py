@@ -48,37 +48,54 @@ def inline_to_chords_over_lyrics(line: str) -> Tuple[str, str]:
     """
     Convert an inline ChordPro line into a (chord_line, lyric_line) pair
     for PlainText (.txt) Chords-Over-Lyrics output.
-    Never inserts hyphens into words; if two chords inside a word are wider
-    than the syllable beneath them, pads with spaces cleanly.
+    Never inserts hyphens or spaces inside words: if chords inside a word are
+    wider than the syllables beneath them, the word remains 100% contiguous and
+    any extra width is absorbed by padding at the next space/word boundary.
     """
     segments = parse_inline_line(line)
     chord_chars: List[str] = []
     lyric_chars: List[str] = []
 
     for chord, text in segments:
-        # Ensure chord line and lyric line are synced at the start of this segment
         cur_c_len = len("".join(chord_chars))
         cur_l_len = len("".join(lyric_chars))
-        if cur_c_len > cur_l_len:
-            # Previous chord was longer than its lyric segment; pad lyric or add space
-            pad = cur_c_len - cur_l_len
-            lyric_chars.append(" " * pad)
-        elif cur_l_len > cur_c_len:
-            pad = cur_l_len - cur_c_len
-            chord_chars.append(" " * pad)
+        at_word_boundary = (cur_l_len == 0) or ("".join(lyric_chars).endswith(" "))
+
+        if at_word_boundary:
+            if cur_c_len > cur_l_len:
+                lyric_chars.append(" " * (cur_c_len - cur_l_len))
+            elif cur_l_len > cur_c_len:
+                chord_chars.append(" " * (cur_l_len - cur_c_len))
+        else:
+            # Mid-word: never split the word with spaces!
+            if cur_l_len > cur_c_len:
+                chord_chars.append(" " * (cur_l_len - cur_c_len))
 
         if chord:
-            # If the previous character in chord_chars is non-space, add 1 space separator
             c_str = "".join(chord_chars)
             if c_str and not c_str.endswith(" "):
                 chord_chars.append(" ")
-                lyric_chars.append(" ")
+                if at_word_boundary:
+                    lyric_chars.append(" ")
             chord_chars.append(chord)
-        lyric_chars.append(text)
+
+        # If text contains a space and chord_chars is currently ahead of lyric_chars,
+        # pad at the first space inside `text` so the following word syncs cleanly.
+        if " " in text:
+            first_sp = text.index(" ")
+            word_tail = text[:first_sp + 1]
+            rest = text[first_sp + 1:]
+            lyric_chars.append(word_tail)
+            cur_c_len2 = len("".join(chord_chars))
+            cur_l_len2 = len("".join(lyric_chars))
+            if cur_c_len2 > cur_l_len2:
+                lyric_chars.append(" " * (cur_c_len2 - cur_l_len2))
+            lyric_chars.append(rest)
+        else:
+            lyric_chars.append(text)
 
     chord_line = "".join(chord_chars).rstrip()
     lyric_line = "".join(lyric_chars).rstrip()
-    # Collapse accidental multiple trailing spaces
     return chord_line, lyric_line
 
 
@@ -467,25 +484,34 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
                         c_x = max(cur_x, min_next_chord_x)
                         chord_pieces.append((c_x, chord))
                         c_w = text_width_pt(chord, chord_size, bold=True)
-                        min_next_chord_x = c_x + c_w + 5.5
+                        min_next_chord_x = c_x + c_w + 5.0
 
                     if text:
                         lyric_pieces.append((cur_x, text))
                         cur_x += text_width_pt(text, lyric_size, bold=False)
 
+                # Guard against overflowing column width in 2-column mode
+                line_span = max(cur_x, min_next_chord_x) - sec_x
+                max_span = col_w - (18.0 if is_chorus else 6.0)
+                h_scale = min(1.0, max_span / line_span) if line_span > 0 else 1.0
+                eff_chord_sz = chord_size * h_scale
+                eff_lyric_sz = lyric_size * h_scale
+
                 # Draw chords in bold navy blue
                 ops.append("0.11 0.32 0.68 rg")
                 for c_x, c_str in chord_pieces:
+                    adj_cx = sec_x + (c_x - sec_x) * h_scale
                     ops.append(
-                        f"BT /F2 {chord_size:.2f} Tf {c_x:.2f} {chord_y:.2f} Td ({pdf_escape(c_str)}) Tj ET"
+                        f"BT /F2 {eff_chord_sz:.2f} Tf {adj_cx:.2f} {chord_y:.2f} Td ({pdf_escape(c_str)}) Tj ET"
                     )
 
                 # Draw lyric segments in crisp dark charcoal
                 ops.append("0.10 0.12 0.16 rg")
                 font_tag = "/F3" if is_chorus else "/F1"
                 for l_x, l_str in lyric_pieces:
+                    adj_lx = sec_x + (l_x - sec_x) * h_scale
                     ops.append(
-                        f"BT {font_tag} {lyric_size:.2f} Tf {l_x:.2f} {lyric_y:.2f} Td ({pdf_escape(l_str)}) Tj ET"
+                        f"BT {font_tag} {eff_lyric_sz:.2f} Tf {adj_lx:.2f} {lyric_y:.2f} Td ({pdf_escape(l_str)}) Tj ET"
                     )
 
                 cur_y -= line_pair_h
