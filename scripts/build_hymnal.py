@@ -48,9 +48,9 @@ def inline_to_chords_over_lyrics(line: str) -> Tuple[str, str]:
     """
     Convert an inline ChordPro line into a (chord_line, lyric_line) pair
     for PlainText (.txt) Chords-Over-Lyrics output.
-    Never inserts hyphens or spaces inside words: if chords inside a word are
-    wider than the syllables beneath them, the word remains 100% contiguous and
-    any extra width is absorbed by padding at the next space/word boundary.
+    Matches the JustChords layout: every syllable starts directly underneath
+    its chord symbol, and melismatic chords sit cleanly over the held space
+    before the resolving syllable.
     """
     segments = parse_inline_line(line)
     chord_chars: List[str] = []
@@ -59,40 +59,18 @@ def inline_to_chords_over_lyrics(line: str) -> Tuple[str, str]:
     for chord, text in segments:
         cur_c_len = len("".join(chord_chars))
         cur_l_len = len("".join(lyric_chars))
-        at_word_boundary = (cur_l_len == 0) or ("".join(lyric_chars).endswith(" "))
-
-        if at_word_boundary:
-            if cur_c_len > cur_l_len:
-                lyric_chars.append(" " * (cur_c_len - cur_l_len))
-            elif cur_l_len > cur_c_len:
-                chord_chars.append(" " * (cur_l_len - cur_c_len))
-        else:
-            # Mid-word: never split the word with spaces!
-            if cur_l_len > cur_c_len:
-                chord_chars.append(" " * (cur_l_len - cur_c_len))
+        if cur_c_len > cur_l_len:
+            lyric_chars.append(" " * (cur_c_len - cur_l_len))
+        elif cur_l_len > cur_c_len:
+            chord_chars.append(" " * (cur_l_len - cur_c_len))
 
         if chord:
             c_str = "".join(chord_chars)
             if c_str and not c_str.endswith(" "):
                 chord_chars.append(" ")
-                if at_word_boundary:
-                    lyric_chars.append(" ")
+                lyric_chars.append(" ")
             chord_chars.append(chord)
-
-        # If text contains a space and chord_chars is currently ahead of lyric_chars,
-        # pad at the first space inside `text` so the following word syncs cleanly.
-        if " " in text:
-            first_sp = text.index(" ")
-            word_tail = text[:first_sp + 1]
-            rest = text[first_sp + 1:]
-            lyric_chars.append(word_tail)
-            cur_c_len2 = len("".join(chord_chars))
-            cur_l_len2 = len("".join(lyric_chars))
-            if cur_c_len2 > cur_l_len2:
-                lyric_chars.append(" " * (cur_c_len2 - cur_l_len2))
-            lyric_chars.append(rest)
-        else:
-            lyric_chars.append(text)
+        lyric_chars.append(text)
 
     chord_line = "".join(chord_chars).rstrip()
     lyric_line = "".join(lyric_chars).rstrip()
@@ -474,14 +452,8 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
                 for chord, text in segs:
                     if chord:
-                        # Ensure this chord does not overlap the previous chord
-                        if cur_x < min_next_chord_x:
-                            # If we are at a word boundary (previous text ended with space or empty),
-                            # shift cur_x so the word also aligns under the chord;
-                            # if mid-word, keep word contiguous and only nudge the chord slightly!
-                            if not lyric_pieces or lyric_pieces[-1][1].endswith(" "):
-                                cur_x = min_next_chord_x
-                        c_x = max(cur_x, min_next_chord_x)
+                        cur_x = max(cur_x, min_next_chord_x)
+                        c_x = cur_x
                         chord_pieces.append((c_x, chord))
                         c_w = text_width_pt(chord, chord_size, bold=True)
                         min_next_chord_x = c_x + c_w + 5.0
