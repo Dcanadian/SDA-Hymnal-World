@@ -1,29 +1,43 @@
 # Seventh-day Adventist Hymnal (1985) — Multi-Format Worship & Musician Suite
 
-A score-faithful digital edition of the **Seventh-day Adventist Hymnal (1985)** rebuilt directly from the 4-part SATB hymnal sheet music.
+A comprehensive, score-faithful digital edition of the **Seventh-day Adventist Hymnal (1985, Hymns 001–695)** compiled into all major chord, lyric, and projection formats.
+
+---
 
 ## Key Features
 
-- **Score-Faithful Practical Worship Harmony**: Functional harmonic rhythm derived directly from the 4-part SATB hymnal score—including musical slash chords (`F/A`, `F/C`, `C7/G`, `D/F#`, `E7/G#`), secondary dominants, and cadential `V7`/`sus4` chords that match the actual piano/organ score.
-- **Chords on Every Stanza & Refrain**: Every verse (`Verse 1`, `Verse 2`, `Verse 3`, …) and `Refrain` has full inline chord placement so musicians never have to scroll back to Verse 1.
-- **Clean Unhyphenated Lyrics**: Chords are anchored at exact syllable positions without inserting mid-word hyphens (`Al[F/C]might[Dm7]y`).
-- **Single Canonical Database (`Database/`)**: Every hymn is stored in a structured JSON schema and compiled into all target formats via [`scripts/build_hymnal.py`](file:///home/antigravity/SDA-Hymnal/scripts/build_hymnal.py).
+- **All 695 Hymns**: The entire 1985 Seventh-day Adventist Hymnal is converted across all major worship file formats.
+- **Clean Triad & 7th Chords (Zero Clutter)**: Formatted with clean root-name triads and dominant 7ths (`F`, `Dm`, `C`, `Am`, `Bb`, `Gm`, `A`, `C7`) without distracting slash-bass inversions or jazz clutter—matching the clean display of the [JustChords iOS app](https://apps.apple.com/).
+- **Exact Syllable-Under-Chord Alignment**: In both Chords-Over-Lyrics plain text and 1-page printable vector PDF charts, every chorded syllable starts directly underneath its chord letter (e.g., `Al` under `Dm`, `might` under `Am`, `y,` under `Bb`). Melismatic cadences (`cre a     tion!`) place transitional chords over sustained vowel space and landing chords directly over word endings.
+- **Unhyphenated Contiguous Lyrics**: Chords are placed inline at the exact syllable boundary without mid-word hyphens (`[Dm]Al[Am]might[Bb]y,`, `[Dm]cre[Bb]a[C7][F]tion!`).
+- **Chords on Every Verse & Refrain**: Every stanza (`Verse 1`, `Verse 2`, `Verse 3`…) and `Refrain` includes chords so musicians never have to scroll back to Verse 1.
+- **Projection Ready**: Includes native ProPresenter files for worship projection.
+
+---
 
 ## Folder Structure
 
-| Folder | Extension | Description |
-| :--- | :--- | :--- |
-| `Database/` | `.json` | Canonical source-of-truth JSON per hymn (`001`–`695`) |
-| `ChordPro/` | `.cho` | Standard ChordPro files (`{start_of_verse}` / `{start_of_chorus}`) + `000 - SDA Hymnal Master.cho` |
-| `JustChords/` | `.cho` | Native JustChords format (`Verse 1:` / `Refrain:` labels, metadata tags) + `000 - SDA Hymnal JustChords Master.cho` |
-| `PlainText/` | `.txt` | Traditional Chords-Over-Lyrics space-aligned plain text |
-| `OnSong/` | `.onsong` | OnSong iPad/Mac worship format |
-| `OpenLyrics/` | `.xml` | OpenLyrics 0.9 standard XML with inline `<chord name="..."/>` tags |
-| `PDF-Chords/` | `.pdf` | Clean Modern Worship Chart 1-page printable vector PDFs |
+| Folder | Extension | File Count | Description |
+| :--- | :--- | :--- | :--- |
+| [`Database/`](file:///home/antigravity/SDA-Hymnal/Database) | `.json` | 695 | Canonical source-of-truth JSON metadata & stanzas per hymn |
+| [`ChordPro/`](file:///home/antigravity/SDA-Hymnal/ChordPro) | `.cho` | 696 | Standard ChordPro files (`{start_of_verse}`, `{title}`) + Master index file |
+| [`JustChords/`](file:///home/antigravity/SDA-Hymnal/JustChords) | `.cho` | 696 | Native JustChords format (`Verse 1:`, `Refrain:` tags) + Master index file |
+| [`PlainText/`](file:///home/antigravity/SDA-Hymnal/PlainText) | `.txt` | 695 | Space-aligned Chords-Over-Lyrics text for any text editor |
+| [`OnSong/`](file:///home/antigravity/SDA-Hymnal/OnSong) | `.onsong` | 695 | OnSong iPad/iOS/macOS worship presentation format |
+| [`OpenLyrics/`](file:///home/antigravity/SDA-Hymnal/OpenLyrics) | `.xml` | 695 | OpenLyrics 0.9 XML with `<chord name="..."/>` tags for OpenLP & FreeShow |
+| [`PDF-Chords/`](file:///home/antigravity/SDA-Hymnal/PDF-Chords) | `.pdf` | 695 | High-resolution 1-page printable vector chord charts |
+| [`ProPresenter/`](file:///home/antigravity/SDA-Hymnal/ProPresenter) | `.txt` | 695 | Slide-divided text ready for batch import into ProPresenter / FreeShow |
+
+---
 
 ## Rebuilding All Formats
 
+To regenerate the entire collection:
+
 ```bash
-python3 scripts/seed_pilot_001_020.py
+# 1. Generate canonical JSON database for all 695 hymns
+python3 scripts/generate_all_695.py
+
+# 2. Compile into ChordPro, JustChords, PlainText, OnSong, OpenLyrics, and PDF-Chords
 python3 scripts/build_hymnal.py
 ```
