@@ -1,6 +1,5 @@
-# SDA Hymnal World (1985) — Multi-Format Worship & Orchestral Suite
-
-A comprehensive, score-faithful digital edition of the **Seventh-day Adventist Hymnal (1985, Hymns 001–695)** compiled into all major chord, lyric, presentation, and orchestral lead sheet formats.
+# SDA-Hymnal-World
+The ultimate resource hub of the modern english Seventh-day Adventist hymnal for musicians.
 
 ---
 
