@@ -436,12 +436,31 @@ def build_hymnal_satb_score(json_file: str):
         if not satb or not satb.get("Soprano"):
             return num, False, "Missing MIDI SATB tracks"
             
+        verses_sylls = extract_syllables_from_sections(h)
+        
+        # Truncate repeating verses from MIDI playback
+        first_pass_sylls = len(verses_sylls[0]) if verses_sylls else 20
+        if len(h.get("sections", [])) > 1 and h["sections"][1].get("type") in ["chorus", "refrain"]:
+            if len(verses_sylls) > 1:
+                first_pass_sylls += len(verses_sylls[1])
+                
+        sop_raw = satb["Soprano"]
+        pattern = [p for _, _, p in sop_raw[:6]]
+        repeat_beat = None
+        min_idx = max(8, int(first_pass_sylls * 0.75))
+        for i in range(min_idx, len(sop_raw) - 6):
+            if sop_raw[i][0] >= 16.0 and [p for _, _, p in sop_raw[i:i+6]] == pattern:
+                repeat_beat = sop_raw[i][0]
+                break
+                
+        if repeat_beat:
+            for v_k in satb:
+                satb[v_k] = [n for n in satb[v_k] if n[0] < repeat_beat - 0.5]
+                
         sop_notes = satb["Soprano"]
         alt_notes = satb.get("Alto", [])
         ten_notes = satb.get("Tenor", [])
         bas_notes = satb.get("Bass", [])
-        
-        verses_sylls = extract_syllables_from_sections(h)
         
         max_beat = max(st + dur for st, dur, _ in sop_notes)
         num_measures = max(1, int(math.ceil(max_beat / meas_quarter_beats)))

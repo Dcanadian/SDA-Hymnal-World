@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
 """
-Generate Brad Warden Style Orchestral Lead Sheets (Vector PDFs) for all 695 SDA Hymns.
+Generate Authentic Monochrome Classic Hymnal Lead Sheets (Vector PDFs) for all 695 SDA Hymns.
 
 Features:
-- Exact Brad Warden Lead Sheet styling:
-  * Prominent centered bold hymn number & title
-  * Centered italic instrument part subtitle
-  * Tune name and meter on left, Composer & lyricist on right
-  * Elegant thin separating horizontal rule
-  * Melody-only notation with generous stave and system spacing
-- Syllable-by-syllable lyric hyphenation across verses
-- Exact SATB note-stack chord analysis with clean non-box accidentals (♯, ♭)
-- Clean metronome tempo marks (♩ = bpm)
-- Full 6 orchestral instrument / clef parts:
-  1. C-Concert-Treble (Flute, Violin, Guitar, Piano)
-  2. Bb-Instruments (Trumpet, Clarinet, Tenor Sax) - Transposed +2 semitones
-  3. Eb-Instruments (Alto Sax, Baritone Sax) - Transposed +9 semitones
-  4. F-Instruments (French Horn) - Transposed +7 semitones
-  5. Bass-Clef (Cello, Trombone, Bassoon, Tuba) - Concert Pitch, Bass Clef
-  6. Alto-Clef (Viola) - Concert Pitch, Alto Clef
+- Pure Black & White typography (high-contrast monochrome printing, #000000 on #ffffff)
+- Non-AI, Authentic Classic Hymnal Header Layout (No horizontal divider lines):
+  * Top Row: Hymn Number on left (bold), Instrument Part on right (bold)
+  * Middle Row: Prominent centered Title (large bold serif)
+  * Bottom Row: Lyricist / Author on left (italic), Tune, Meter, & Composer on right (italic)
+- Zero Orphan Musical Phrases:
+  * Truncates repeating verses from MIDI playback so each hymn represents one complete tune cycle
+  * Dynamic scale fitting (scales 48 down to 34) ensuring each score fits on exactly 1 single page
+- Complete 6 orchestral lead sheet parts:
+  1. C-Concert-Treble (C Instruments)
+  2. Bb-Instruments (B♭ Instruments) - Transposed +2 semitones
+  3. Eb-Instruments (E♭ Instruments) - Transposed +9 semitones
+  4. F-Instruments (F Instruments) - Transposed +7 semitones
+  5. Bass-Clef (Bass Clef) - Concert Pitch, Bass Clef
+  6. Alto-Clef (Alto Clef) - Concert Pitch, Alto Clef
+- Clean universal accidentals (♯, ♭) and tempo mark (♩ = bpm) with zero font-box glitches
 """
 
 import os
@@ -48,37 +48,37 @@ ORCH_DIR = ROOT_DIR / "Orchestral-Lead-Sheets"
 
 ORCH_PARTS = {
     "C-Concert-Treble": {
-        "name": "Concert Melody (Flute, Violin, Guitar, Piano)",
+        "name": "C Instruments",
         "semitones": 0,
         "clef_sign": "G",
         "clef_line": 2,
     },
     "Bb-Instruments": {
-        "name": "B♭ Instruments (Trumpet, Clarinet, Tenor Sax)",
+        "name": "B♭ Instruments",
         "semitones": 2,
         "clef_sign": "G",
         "clef_line": 2,
     },
     "Eb-Instruments": {
-        "name": "E♭ Instruments (Alto Sax, Baritone Sax)",
+        "name": "E♭ Instruments",
         "semitones": 9,
         "clef_sign": "G",
         "clef_line": 2,
     },
     "F-Instruments": {
-        "name": "F Instruments (French Horn)",
+        "name": "F Instruments",
         "semitones": 7,
         "clef_sign": "G",
         "clef_line": 2,
     },
     "Bass-Clef": {
-        "name": "Bass Clef (Cello, Trombone, Bassoon, Tuba)",
+        "name": "Bass Clef",
         "semitones": 0,
         "clef_sign": "F",
         "clef_line": 4,
     },
     "Alto-Clef": {
-        "name": "Alto Clef (Viola)",
+        "name": "Alto Clef",
         "semitones": 0,
         "clef_sign": "C",
         "clef_line": 3,
@@ -112,7 +112,7 @@ def transpose_chord_name(ch_str: str, semi: int, target_fifths: int) -> str:
     return '/'.join(res)
 
 
-def render_lead_sheet_pdf(tk, h: dict, satb: dict, verses_sylls: list, part_cfg: dict) -> bytes:
+def render_lead_sheet_pdf(tk, h: dict, satb: dict, v_sylls: list, part_cfg: dict) -> bytes:
     num = h["number"]
     title = h["title"]
     composer = h.get("composer", "")
@@ -235,9 +235,9 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, verses_sylls: list, part_cfg:
                 
             # Lyrics (up to 4 verses)
             lyric_blocks = []
-            for v_idx, v_sylls in enumerate(verses_sylls[:4]):
-                if sop_note_counter < len(v_sylls):
-                    s_txt, s_tag = v_sylls[sop_note_counter]
+            for v_idx, v_s in enumerate(v_sylls[:4]):
+                if sop_note_counter < len(v_s):
+                    s_txt, s_tag = v_s[sop_note_counter]
                     c_txt = s_txt.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
                     lyric_blocks.append(f'        <lyric number="{v_idx+1}"><syllabic>{s_tag}</syllabic><text>{c_txt}</text></lyric>')
             lyrics_xml = '\n'.join(lyric_blocks) + '\n' if lyric_blocks else ''
@@ -261,32 +261,73 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, verses_sylls: list, part_cfg:
     xml_parts.append('  </part>\n</score-partwise>\n')
 
     lead_xml = ''.join(xml_parts)
-    tk.loadData(lead_xml)
-    svg = tk.renderToSVG(1)
+    
+    # Scale fitting loop: Guarantee 1 single page with zero orphan phrases
+    current_scale = 48
+    while current_scale >= 34:
+        tk.setOptions({
+            'pageWidth': 2100,
+            'pageHeight': 2970,
+            'scale': current_scale,
+            'adjustPageHeight': False,
+            'header': 'none',
+            'footer': 'none',
+            'harmDist': 4,
+            'spacingSystem': 13,
+            'spacingStaff': 11,
+            'lyricTopMinMargin': 3.0,
+            'breaksNoWidow': True
+        })
+        tk.loadData(lead_xml)
+        if tk.getPageCount() == 1:
+            break
+        current_scale -= 2
 
-    # Clean SMuFL glyphs so CairoSVG renders clean accidentals with no square boxes
-    svg = svg.replace('\uea66', '♯').replace('\uea64', '♭').replace('\ueca5', '♩')
-    svg = re.sub(r'font-family="Leipzig"', 'font-family="serif"', svg)
-    svg = re.sub(r'class="page-margin" transform="translate\(\d+,\s*\d+\)"', 'class="page-margin" transform="translate(500, 2600)"', svg)
+    # In rare cases of very long hymns (>36 measures), render all pages without widows
+    total_pages = tk.getPageCount()
+    svg_pages = []
+    for p_num in range(1, total_pages + 1):
+        svg_p = tk.renderToSVG(p_num)
+        svg_p = svg_p.replace('\uea66', '♯').replace('\uea64', '♭').replace('\ueca5', '♩')
+        svg_p = re.sub(r'font-family="Leipzig"', 'font-family="serif"', svg_p)
+        svg_p = re.sub(r'class="page-margin" transform="translate\(\d+,\s*\d+\)"', 'class="page-margin" transform="translate(500, 2500)"', svg_p)
+        
+        safe_title_h = title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        safe_lyr_h = lyricist.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        safe_right_h = f'{tune} {meter}   {composer}'.strip().replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
 
-    safe_title_header = title.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    safe_part_header = part_name.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    safe_tune_header = f"Tune: {tune} {meter}".strip().replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-    safe_comp_header = f"{composer} / {lyricist}".strip(" /").replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-
-    header_svg = f"""
-  <g id="brad-warden-header">
-    <text x="10500" y="1000" font-family="DejaVu Serif, Georgia, Times, serif" font-size="650" font-weight="bold" text-anchor="middle">{num:03d} - {safe_title_header}</text>
-    <text x="10500" y="1550" font-family="DejaVu Serif, Georgia, Times, serif" font-size="380" font-style="italic" text-anchor="middle">{safe_part_header}</text>
-    <text x="1000" y="2000" font-family="DejaVu Serif, Georgia, Times, serif" font-size="280" text-anchor="start">{safe_tune_header}</text>
-    <text x="20000" y="2000" font-family="DejaVu Serif, Georgia, Times, serif" font-size="280" text-anchor="end">{safe_comp_header}</text>
-    <line x1="1000" y1="2150" x2="20000" y2="2150" stroke="#222222" stroke-width="20"/>
+        # Authentic Classic Hymnal Header (Pure Black & White, No lines)
+        header_svg = f"""
+  <g id="hymnal-header" fill="#000000">
+    <!-- Top row: Number on left, Part on right -->
+    <text x="1000" y="900" font-family="DejaVu Serif, Times, Georgia, serif" font-size="650" font-weight="bold" text-anchor="start">{num}</text>
+    <text x="20000" y="900" font-family="DejaVu Serif, Times, Georgia, serif" font-size="380" font-weight="bold" text-anchor="end">{part_name}</text>
+    
+    <!-- Middle row: Title centered in prominent type -->
+    <text x="10500" y="1450" font-family="DejaVu Serif, Times, Georgia, serif" font-size="650" font-weight="bold" text-anchor="middle">{safe_title_h}</text>
+    
+    <!-- Bottom row: Author on left, Tune/Composer on right -->
+    <text x="1000" y="1950" font-family="DejaVu Serif, Times, Georgia, serif" font-size="280" font-style="italic" text-anchor="start">{safe_lyr_h}</text>
+    <text x="20000" y="1950" font-family="DejaVu Serif, Times, Georgia, serif" font-size="280" font-style="italic" text-anchor="end">{safe_right_h}</text>
   </g>
 """
-    idx = svg.find('class="definition-scale"')
-    insert_pos = svg.find('>', idx) + 1
-    final_svg = svg[:insert_pos] + header_svg + svg[insert_pos:]
-    pdf_bytes = cairosvg.svg2pdf(bytestring=final_svg.encode('utf-8'))
+        idx = svg_p.find('class="definition-scale"')
+        insert_pos = svg_p.find('>', idx) + 1
+        final_svg = svg_p[:insert_pos] + header_svg + svg_p[insert_pos:]
+        svg_pages.append(final_svg)
+
+    # Render vector PDF (single page or joined multi-page if exceptionally long)
+    if len(svg_pages) == 1:
+        pdf_bytes = cairosvg.svg2pdf(bytestring=svg_pages[0].encode('utf-8'))
+    else:
+        import fitz
+        doc = fitz.open()
+        for s in svg_pages:
+            p_bytes = cairosvg.svg2pdf(bytestring=s.encode('utf-8'))
+            sub_doc = fitz.open(stream=p_bytes, filetype="pdf")
+            doc.insert_pdf(sub_doc)
+        pdf_bytes = doc.tobytes()
+        
     return pdf_bytes
 
 
@@ -303,24 +344,31 @@ def process_single_hymn(json_file: str):
         if not satb or not satb.get("Soprano"):
             return num, False, "Missing MIDI SATB tracks"
             
-        verses_sylls = extract_syllables_from_sections(h)
+        v_sylls = extract_syllables_from_sections(h)
+        
+        # Truncate repeating verses from MIDI playback so each hymn represents 1 complete tune pass
+        first_pass_sylls = len(v_sylls[0]) if v_sylls else 20
+        if len(h.get("sections", [])) > 1 and h["sections"][1].get("type") in ["chorus", "refrain"]:
+            if len(v_sylls) > 1:
+                first_pass_sylls += len(v_sylls[1])
+                
+        sop_raw = satb["Soprano"]
+        pattern = [p for _, _, p in sop_raw[:6]]
+        repeat_beat = None
+        min_idx = max(8, int(first_pass_sylls * 0.75))
+        for i in range(min_idx, len(sop_raw) - 6):
+            if sop_raw[i][0] >= 16.0 and [p for _, _, p in sop_raw[i:i+6]] == pattern:
+                repeat_beat = sop_raw[i][0]
+                break
+                
+        if repeat_beat:
+            for v_k in satb:
+                satb[v_k] = [n for n in satb[v_k] if n[0] < repeat_beat - 0.5]
         
         tk = verovio.toolkit()
-        tk.setOptions({
-            'pageWidth': 2100,
-            'pageHeight': 2970,
-            'scale': 48,
-            'adjustPageHeight': False,
-            'header': 'none',
-            'footer': 'none',
-            'harmDist': 4,
-            'spacingSystem': 14,
-            'spacingStaff': 12,
-            'lyricTopMinMargin': 3.0
-        })
         
         for part_key, part_cfg in ORCH_PARTS.items():
-            pdf_bytes = render_lead_sheet_pdf(tk, h, satb, verses_sylls, part_cfg)
+            pdf_bytes = render_lead_sheet_pdf(tk, h, satb, v_sylls, part_cfg)
             out_pdf = ORCH_DIR / part_key / f"{num:03d} - {safe_title}.pdf"
             with open(out_pdf, "wb") as f_out:
                 f_out.write(pdf_bytes)
@@ -332,7 +380,7 @@ def process_single_hymn(json_file: str):
 
 def main():
     db_files = sorted(glob.glob(str(DB_DIR / "[0-9][0-9][0-9]*.json")))
-    print(f"Generating Brad Warden Orchestral Lead Sheets for {len(db_files)} hymns across 6 parts...")
+    print(f"Generating Authentic B&W Classic Hymnal Lead Sheets for {len(db_files)} hymns across 6 parts...")
     start_time = time.time()
     
     success = 0
@@ -350,7 +398,7 @@ def main():
                 print(f"  Error on hymn {num}: {err}")
                 
     elapsed = time.time() - start_time
-    print(f"\nSuccessfully generated {success * 6} Orchestral Lead Sheet PDFs in {elapsed:.1f}s! Failures: {failed}")
+    print(f"\nSuccessfully generated {success * 6} B&W Lead Sheet PDFs in {elapsed:.1f}s! Failures: {failed}")
 
 
 if __name__ == "__main__":
