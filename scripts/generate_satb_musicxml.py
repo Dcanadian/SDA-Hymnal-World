@@ -127,7 +127,7 @@ def identify_stack(notes, key_flats: bool = False) -> str:
         ({0, 3, 10}, "m7", 75),
         ({0, 4}, "", 70),
         ({0, 3}, "m", 68),
-        ({0, 7}, "5", 60),
+        ({0, 7}, "", 60),
         ({0}, "", 50),
     ]
 
@@ -429,7 +429,8 @@ def build_hymnal_satb_score(json_file: str):
         beat_type = int(m.group(2)) if m else 4
         
         divisions = 4
-        meas_dur_div = int(round(beats * (4.0 / beat_type) * divisions))
+        meas_quarter_beats = beats * (4.0 / beat_type)
+        meas_dur_div = int(round(meas_quarter_beats * divisions))
         
         satb = extract_satb_from_midi(num)
         if not satb or not satb.get("Soprano"):
@@ -443,11 +444,11 @@ def build_hymnal_satb_score(json_file: str):
         verses_sylls = extract_syllables_from_sections(h)
         
         max_beat = max(st + dur for st, dur, _ in sop_notes)
-        num_measures = max(1, int(math.ceil(max_beat / beats)))
+        num_measures = max(1, int(math.ceil(max_beat / meas_quarter_beats)))
         
-        def get_measure_notes(notes, m_idx, beats_per_meas):
-            m_start = m_idx * beats_per_meas
-            m_end = (m_idx + 1) * beats_per_meas
+        def get_measure_notes(notes, m_idx, q_per_meas):
+            m_start = m_idx * q_per_meas
+            m_end = (m_idx + 1) * q_per_meas
             m_notes = []
             for st, dur, p in notes:
                 if m_start - 0.1 <= st < m_end - 0.1:
@@ -479,12 +480,30 @@ def build_hymnal_satb_score(json_file: str):
       <group-barline>yes</group-barline>
     </part-group>
     <score-part id="P1">
-      <part-name></part-name>
+      <part-name>Soprano &amp; Alto (Choir)</part-name>
     </score-part>
     <score-part id="P2">
-      <part-name></part-name>
+      <part-name>Tenor &amp; Bass (Choir)</part-name>
     </score-part>
     <part-group type="stop" number="1"/>
+    <score-part id="P3">
+      <part-name>C Instruments</part-name>
+    </score-part>
+    <score-part id="P4">
+      <part-name>B♭ Instruments</part-name>
+    </score-part>
+    <score-part id="P5">
+      <part-name>E♭ Instruments</part-name>
+    </score-part>
+    <score-part id="P6">
+      <part-name>F Instruments</part-name>
+    </score-part>
+    <score-part id="P7">
+      <part-name>Bass Clef Instruments</part-name>
+    </score-part>
+    <score-part id="P8">
+      <part-name>Alto Clef Instruments</part-name>
+    </score-part>
   </part-list>
 """
         xml_parts.append(header)
@@ -525,7 +544,7 @@ def build_hymnal_satb_score(json_file: str):
       </direction>
 """)
             # Voice 1: Soprano
-            sop_m = get_measure_notes(sop_notes, m_idx, beats)
+            sop_m = get_measure_notes(sop_notes, m_idx, meas_quarter_beats)
             cur_div = 0
             for rel_st, rel_dur, pitch_val, abs_st in sop_m:
                 target_div = int(round(rel_st * divisions))
@@ -605,7 +624,7 @@ def build_hymnal_satb_score(json_file: str):
       </backup>
 """)
             # Voice 2: Alto
-            alt_m = get_measure_notes(alt_notes, m_idx, beats)
+            alt_m = get_measure_notes(alt_notes, m_idx, meas_quarter_beats)
             cur_div = 0
             for rel_st, rel_dur, pitch_val, abs_st in alt_m:
                 target_div = int(round(rel_st * divisions))
@@ -687,7 +706,7 @@ def build_hymnal_satb_score(json_file: str):
       </attributes>
 """)
             # Voice 1: Tenor
-            ten_m = get_measure_notes(ten_notes, m_idx, beats)
+            ten_m = get_measure_notes(ten_notes, m_idx, meas_quarter_beats)
             cur_div = 0
             for rel_st, rel_dur, pitch_val, abs_st in ten_m:
                 target_div = int(round(rel_st * divisions))
@@ -747,7 +766,7 @@ def build_hymnal_satb_score(json_file: str):
       </backup>
 """)
             # Voice 2: Bass
-            bas_m = get_measure_notes(bas_notes, m_idx, beats)
+            bas_m = get_measure_notes(bas_notes, m_idx, meas_quarter_beats)
             cur_div = 0
             for rel_st, rel_dur, pitch_val, abs_st in bas_m:
                 target_div = int(round(rel_st * divisions))
@@ -804,6 +823,113 @@ def build_hymnal_satb_score(json_file: str):
 """)
             xml_parts.append('    </measure>\n')
         xml_parts.append('  </part>\n')
+        
+        # =================================================================
+        # INSTRUMENT PARTS: P3 (C), P4 (Bb), P5 (Eb), P6 (F), P7 (Bass), P8 (Alto)
+        # =================================================================
+        inst_configs = [
+            ("P3", "C Instruments", "G", 2, 0, 0, ""),
+            ("P4", "B♭ Instruments", "G", 2, 2, 2, """        <transpose>
+          <diatonic>-1</diatonic>
+          <chromatic>-2</chromatic>
+        </transpose>\n"""),
+            ("P5", "E♭ Instruments", "G", 2, 9, 3, """        <transpose>
+          <diatonic>-5</diatonic>
+          <chromatic>-9</chromatic>
+        </transpose>\n"""),
+            ("P6", "F Instruments", "G", 2, 7, 1, """        <transpose>
+          <diatonic>-4</diatonic>
+          <chromatic>-7</chromatic>
+        </transpose>\n"""),
+            ("P7", "Bass Clef Instruments", "F", 4, 0, 0, ""),
+            ("P8", "Alto Clef Instruments", "C", 3, 0, 0, ""),
+        ]
+        
+        for p_id, p_name, p_clef_sign, p_clef_line, p_semi, p_fifths_offset, p_trans_xml in inst_configs:
+            p_fifths = fifths + p_fifths_offset
+            xml_parts.append(f'  <part id="{p_id}">\n')
+            for m_idx in range(num_measures):
+                m_num = m_idx + 1
+                xml_parts.append(f'    <measure number="{m_num}">\n')
+                if m_idx == 0:
+                    xml_parts.append(f"""      <attributes>
+        <divisions>{divisions}</divisions>
+        <key>
+          <fifths>{p_fifths}</fifths>
+        </key>
+        <time>
+          <beats>{beats}</beats>
+          <beat-type>{beat_type}</beat-type>
+        </time>
+        <clef>
+          <sign>{p_clef_sign}</sign>
+          <line>{p_clef_line}</line>
+        </clef>
+{p_trans_xml}      </attributes>\n""")
+                sop_m = get_measure_notes(sop_notes, m_idx, meas_quarter_beats)
+                cur_div = 0
+                for rel_st, rel_dur, pitch_val, abs_st in sop_m:
+                    target_div = int(round(rel_st * divisions))
+                    if target_div > cur_div:
+                        rest_div = target_div - cur_div
+                        rtype, rdot = duration_to_type(rest_div, divisions)
+                        dot_tag = "<dot/>" if rdot else ""
+                        xml_parts.append(f"""      <note>
+        <rest/>
+        <duration>{rest_div}</duration>
+        <voice>1</voice>
+        <type>{rtype}</type>
+        {dot_tag}
+      </note>\n""")
+                        cur_div = target_div
+                        
+                    dur_div = max(1, int(round(rel_dur * divisions)))
+                    if cur_div + dur_div > meas_dur_div:
+                        dur_div = meas_dur_div - cur_div
+                    if dur_div <= 0:
+                        continue
+                        
+                    trans_pitch = pitch_val + p_semi
+                    if p_clef_sign == 'F' and trans_pitch > 60:
+                        trans_pitch -= 12
+                    elif p_clef_sign == 'C' and trans_pitch > 72:
+                        trans_pitch -= 12
+                    elif p_semi == 9 and trans_pitch > 81:
+                        trans_pitch -= 12
+                    elif p_semi == 7 and trans_pitch > 81:
+                        trans_pitch -= 12
+                        
+                    step, alter, octave = midi_to_pitch(trans_pitch, p_fifths)
+                    ntype, dot = duration_to_type(dur_div, divisions)
+                    dot_tag = "<dot/>" if dot else ""
+                    alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
+                    xml_parts.append(f"""      <note>
+        <pitch>
+          <step>{step}</step>
+          {alter_tag}
+          <octave>{octave}</octave>
+        </pitch>
+        <duration>{dur_div}</duration>
+        <voice>1</voice>
+        <type>{ntype}</type>
+        {dot_tag}
+      </note>\n""")
+                    cur_div += dur_div
+                    
+                if cur_div < meas_dur_div:
+                    rest_div = meas_dur_div - cur_div
+                    rtype, rdot = duration_to_type(rest_div, divisions)
+                    dot_tag = "<dot/>" if rdot else ""
+                    xml_parts.append(f"""      <note>
+        <rest/>
+        <duration>{rest_div}</duration>
+        <voice>1</voice>
+        <type>{rtype}</type>
+        {dot_tag}
+      </note>\n""")
+                xml_parts.append('    </measure>\n')
+            xml_parts.append('  </part>\n')
+            
         xml_parts.append('</score-partwise>\n')
         
         out_xml = XML_DIR / f"{num:03d} - {safe_title}.musicxml"
