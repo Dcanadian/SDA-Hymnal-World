@@ -12,28 +12,34 @@ The ultimate resource hub of the modern english Seventh-day Adventist hymnal for
 - **Chords on Every Verse & Refrain**: Every stanza (`Verse 1`, `Verse 2`, `Verse 3`…) and `Refrain` includes chords so musicians never have to scroll back to Verse 1.
 - **Orchestral Lead Sheets for Special Instruments & Clefs**: Dedicated, transposed 1-page printable charts for B♭, E♭, F, Bass Clef, and Alto Clef instruments.
 - **Editable MusicXML for MuseScore**: Open standard `.musicxml` files with clefs, key signatures, time signatures, chord symbols, and lyrics ready for MuseScore, Finale, Sibelius, and Dorico.
-- **Projection Ready**: Native ProPresenter files and OpenLyrics XML for FreeShow, OpenLP, and ProPresenter.
+- **Projection Ready**: Native FreeShow (`.show`) presentation files, ProPresenter slide files, and OpenLyrics XML for FreeShow, OpenLP, and ProPresenter.
+- **Editable 4-Part SATB MusicXML for MuseScore**: Authentic 4-part choral scores (Soprano, Alto, Tenor, Bass) cloned directly from the SDA hymnal PDF with exact pitches, proper rhythmic durations, measure barlines, key signatures, meters, chords, and lyrics ready for MuseScore, Finale, Sibelius, and Dorico.
+- **True Melody-Only Sheet Music Lead Sheets**: Professional 5-line musical staves, clefs, notes, stems, barlines, chords above the staff, and lyrics below the staff across 6 dedicated instrument parts.
+- **Complete Hymnal PDF Included**: Full 724-page original Seventh-day Adventist Hymnal (1985) sheet music score PDF (`SDA_Hymnal_1985.pdf`) right in the repository.
 
 ---
 
 ## Folder Structure
 
-| Folder | Extension | File Count | Description |
+| Folder / File | Extension | File Count | Description |
 | :--- | :--- | :--- | :--- |
+| [`SDA_Hymnal_1985.pdf`](file:///home/antigravity/SDA-Hymnal/SDA_Hymnal_1985.pdf) | `.pdf` | 1 | Complete 724-page original 1985 Seventh-day Adventist Hymnal score PDF |
 | [`Database/`](file:///home/antigravity/SDA-Hymnal/Database) | `.json` | 695 | Canonical source-of-truth JSON metadata & stanzas per hymn |
 | [`ChordPro/`](file:///home/antigravity/SDA-Hymnal/ChordPro) | `.cho` | 696 | Standard ChordPro files (`{start_of_verse}`, `{title}`) + Master index file |
 | [`JustChords/`](file:///home/antigravity/SDA-Hymnal/JustChords) | `.cho` | 696 | Native JustChords format (`Verse 1:`, `Refrain:` tags) + Master index file |
 | [`PlainText/`](file:///home/antigravity/SDA-Hymnal/PlainText) | `.txt` | 695 | Space-aligned Chords-Over-Lyrics text for any text editor |
 | [`OnSong/`](file:///home/antigravity/SDA-Hymnal/OnSong) | `.onsong` | 695 | OnSong iPad/iOS/macOS worship presentation format |
 | [`OpenLyrics/`](file:///home/antigravity/SDA-Hymnal/OpenLyrics) | `.xml` | 695 | OpenLyrics 0.9 XML with `<chord name="..."/>` tags for OpenLP & FreeShow |
+| [`FreeShow/`](file:///home/antigravity/SDA-Hymnal/FreeShow) | `.show` | 696 | Native FreeShow presentation files with metadata, slide groups & layouts |
 | [`PDF-Chords/`](file:///home/antigravity/SDA-Hymnal/PDF-Chords) | `.pdf` | 695 | High-resolution 1-page printable vector chord charts |
-| [`ProPresenter/`](file:///home/antigravity/SDA-Hymnal/ProPresenter) | `.txt` | 695 | Slide-divided text ready for batch import into ProPresenter / FreeShow |
-| [`MusicXML/`](file:///home/antigravity/SDA-Hymnal/MusicXML) | `.musicxml` | 696 | Universal editable notation files for MuseScore, Finale, Sibelius, Dorico |
-| [`Orchestral-Lead-Sheets/Bb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Bb-Instruments) | `.pdf` | 696 | Transposed +2 semitones (Trumpet, Clarinet, Tenor Sax) |
-| [`Orchestral-Lead-Sheets/Eb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Eb-Instruments) | `.pdf` | 696 | Transposed +9 semitones (Alto Sax, Baritone Sax) |
-| [`Orchestral-Lead-Sheets/F-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/F-Instruments) | `.pdf` | 696 | Transposed +7 semitones (French Horn) |
-| [`Orchestral-Lead-Sheets/Bass-Clef/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Bass-Clef) | `.pdf` | 696 | Concert pitch (Cello, Trombone, Euphonium, Bassoon, Tuba, Bass) |
-| [`Orchestral-Lead-Sheets/Alto-Clef/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Alto-Clef) | `.pdf` | 696 | Concert pitch (Viola) |
+| [`ProPresenter/`](file:///home/antigravity/SDA-Hymnal/ProPresenter) | `.txt` | 695 | Slide-divided text ready for batch import into ProPresenter |
+| [`MusicXML/`](file:///home/antigravity/SDA-Hymnal/MusicXML) | `.musicxml` | 696 | Editable 4-part SATB harmony scores for MuseScore, Finale, Sibelius, Dorico |
+| [`Orchestral-Lead-Sheets/C-Concert-Treble/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/C-Concert-Treble) | `.pdf` | 696 | Melody-only sheet music in Concert Pitch (Flute, Violin, Oboe, Guitar, Piano) |
+| [`Orchestral-Lead-Sheets/Bb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Bb-Instruments) | `.pdf` | 696 | Melody-only sheet music transposed +2 semitones (Trumpet, Clarinet, Tenor Sax) |
+| [`Orchestral-Lead-Sheets/Eb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Eb-Instruments) | `.pdf` | 696 | Melody-only sheet music transposed +9 semitones (Alto Sax, Baritone Sax) |
+| [`Orchestral-Lead-Sheets/F-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/F-Instruments) | `.pdf` | 696 | Melody-only sheet music transposed +7 semitones (French Horn) |
+| [`Orchestral-Lead-Sheets/Bass-Clef/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Bass-Clef) | `.pdf` | 696 | Melody-only sheet music in Bass Clef (Cello, Trombone, Euphonium, Bassoon, Tuba) |
+| [`Orchestral-Lead-Sheets/Alto-Clef/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Alto-Clef) | `.pdf` | 696 | Melody-only sheet music in Alto Clef (Viola) |
 
 ---
 
@@ -46,9 +52,13 @@ python3 scripts/generate_all_695.py
 # 2. Compile into ChordPro, JustChords, PlainText, OnSong, OpenLyrics, and PDF-Chords
 python3 scripts/build_hymnal.py
 
-# 3. Generate editable MusicXML for MuseScore
-~/.venv/bin/python scripts/generate_musicxml.py
+# 3. Generate native FreeShow (.show) presentation files
+python3 scripts/generate_freeshow.py
 
-# 4. Generate transposed orchestral lead sheets for all instrument parts (3,480 charts)
-python3 scripts/generate_orchestral_leadsheets.py
+# 4. Generate authentic 4-part SATB MusicXML for MuseScore
+~/.venv/bin/python scripts/generate_satb_musicxml.py
+
+# 5. Generate melody-only sheet music lead sheets across 6 instrument parts (4,176 PDFs)
+~/.venv/bin/python scripts/generate_melody_sheet_music.py
 ```
+
