@@ -316,35 +316,41 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
         len(CHORD_RE.sub("", ln)) for s in sections for ln in s["lines"]
     )
 
-    # Decide 1-column vs 2-column layout to fit cleanly on 1 page
-    use_two_cols = (total_lines >= 20 and len(sections) >= 3)
+    # Pick the roomiest layout that fits one page: single column first, then two columns.
+    # (lyric size, chord size, section-title size, line-pair height, section gap)
+    candidates = [
+        (11.5, 10.5, 11.5, 33.0, 16.0),
+        (10.8, 9.8, 10.8, 30.0, 14.0),
+        (10.2, 9.4, 10.2, 27.5, 12.0),
+        (9.6, 8.8, 9.8, 25.5, 10.0),
+        (9.0, 8.4, 9.2, 23.5, 9.0),
+        (8.4, 7.8, 8.6, 22.0, 8.0),
+    ]
+    avail_h = (TOP_Y - 76.0) - (BOTTOM_Y + 18.0)
 
-    if use_two_cols:
-        lyric_size = 9.2 if max_line_chars > 46 else 9.6
-        chord_size = 8.4 if max_line_chars > 46 else 8.8
-        sec_title_size = 9.8
-        line_pair_h = 21.5 if total_lines <= 28 else 19.5
-        sec_gap = 9.0
-    else:
-        # Scale single-column density so all lines fit comfortably above the footer
-        if total_lines <= 14:
-            lyric_size = 11.2
-            chord_size = 10.2
-            sec_title_size = 11.2
-            line_pair_h = 27.5
-            sec_gap = 14.0
-        elif total_lines <= 19:
-            lyric_size = 10.5
-            chord_size = 9.6
-            sec_title_size = 10.6
-            line_pair_h = 25.0
-            sec_gap = 11.5
-        else:
-            lyric_size = 9.6
-            chord_size = 8.8
-            sec_title_size = 9.8
-            line_pair_h = 21.0
-            sec_gap = 8.5
+    def sec_heights(c):
+        return [(c[2] + 6.0) + len(sec["lines"]) * c[3] + c[4] for sec in sections]
+
+    chosen = None
+    use_two_cols = False
+    col_split = len(sections)
+    for c in candidates:
+        if sum(sec_heights(c)) <= avail_h:
+            chosen = c
+            break
+    if chosen is None:
+        use_two_cols = True
+        for c in candidates:
+            hs = sec_heights(c)
+            best_k, best_max = 1, float("inf")
+            for k in range(1, len(sections)):
+                mx = max(sum(hs[:k]), sum(hs[k:]))
+                if mx < best_max:
+                    best_k, best_max = k, mx
+            chosen, col_split = c, best_k
+            if best_max <= avail_h:
+                break
+    lyric_size, chord_size, sec_title_size, line_pair_h, sec_gap = chosen
 
     ops: List[str] = []
 
@@ -383,8 +389,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
     # Split sections across columns if 2-column
     if use_two_cols:
-        half = (len(sections) + 1) // 2
-        col_groups = [(MARGIN_X, sections[:half]), (MARGIN_X + col_w + 24.0, sections[half:])]
+        col_groups = [(MARGIN_X, sections[:col_split]), (MARGIN_X + col_w + 24.0, sections[col_split:])]
     else:
         col_groups = [(MARGIN_X, sections)]
 
@@ -421,7 +426,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
                         c_x = cur_x
                         chord_pieces.append((c_x, chord))
                         c_w = text_width_pt(chord, chord_size, bold=True)
-                        min_next_chord_x = c_x + c_w + 5.0
+                        min_next_chord_x = c_x + c_w + 3.5
 
                     if text:
                         lyric_pieces.append((cur_x, text))
