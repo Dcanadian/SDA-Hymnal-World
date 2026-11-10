@@ -16,7 +16,7 @@ from pathlib import Path
 
 ROOT_DIR = Path("/home/antigravity/SDA-Hymnal")
 DB_DIR = ROOT_DIR / "Database"
-OUT_DIR = ROOT_DIR / "FreeShow"
+OUT_DIR = ROOT_DIR / "Slides" / "FreeShow"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 db_files = sorted(glob.glob(str(DB_DIR / "[0-9][0-9][0-9]*.json")))

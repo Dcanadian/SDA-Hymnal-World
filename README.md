@@ -25,21 +25,21 @@ The ultimate resource hub of the modern english Seventh-day Adventist hymnal for
 | :--- | :--- | :--- | :--- |
 | [`SDA_Hymnal_1985.pdf`](file:///home/antigravity/SDA-Hymnal/SDA_Hymnal_1985.pdf) | `.pdf` | 1 | Complete 724-page original 1985 Seventh-day Adventist Hymnal score PDF |
 | [`Database/`](file:///home/antigravity/SDA-Hymnal/Database) | `.json` | 695 | Canonical source-of-truth JSON metadata & stanzas per hymn |
-| [`ChordPro/`](file:///home/antigravity/SDA-Hymnal/ChordPro) | `.cho` | 696 | Standard ChordPro files (`{start_of_verse}`, `{title}`) + Master index file |
-| [`JustChords/`](file:///home/antigravity/SDA-Hymnal/JustChords) | `.cho` | 696 | Native JustChords format (`Verse 1:`, `Refrain:` tags) + Master index file |
-| [`PlainText/`](file:///home/antigravity/SDA-Hymnal/PlainText) | `.txt` | 695 | Space-aligned Chords-Over-Lyrics text for any text editor |
-| [`OnSong/`](file:///home/antigravity/SDA-Hymnal/OnSong) | `.onsong` | 695 | OnSong iPad/iOS/macOS worship presentation format |
-| [`OpenLyrics/`](file:///home/antigravity/SDA-Hymnal/OpenLyrics) | `.xml` | 695 | OpenLyrics 0.9 XML with `<chord name="..."/>` tags for OpenLP & FreeShow |
-| [`FreeShow/`](file:///home/antigravity/SDA-Hymnal/FreeShow) | `.show` | 696 | Native FreeShow presentation files with metadata, slide groups & layouts |
-| [`PDF-Chords/`](file:///home/antigravity/SDA-Hymnal/PDF-Chords) | `.pdf` | 695 | High-resolution 1-page printable vector chord charts |
-| [`ProPresenter/`](file:///home/antigravity/SDA-Hymnal/ProPresenter) | `.txt` | 695 | Slide-divided text ready for batch import into ProPresenter |
-| [`MusicXML/`](file:///home/antigravity/SDA-Hymnal/MusicXML) | `.musicxml` | 696 | Editable 4-part SATB harmony scores for MuseScore, Finale, Sibelius, Dorico |
-| [`Orchestral-Lead-Sheets/C-Concert-Treble/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/C-Concert-Treble) | `.pdf` | 696 | Melody-only sheet music in Concert Pitch (Flute, Violin, Oboe, Guitar, Piano) |
-| [`Orchestral-Lead-Sheets/Bb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Bb-Instruments) | `.pdf` | 696 | Melody-only sheet music transposed +2 semitones (Trumpet, Clarinet, Tenor Sax) |
-| [`Orchestral-Lead-Sheets/Eb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Eb-Instruments) | `.pdf` | 696 | Melody-only sheet music transposed +9 semitones (Alto Sax, Baritone Sax) |
-| [`Orchestral-Lead-Sheets/F-Instruments/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/F-Instruments) | `.pdf` | 696 | Melody-only sheet music transposed +7 semitones (French Horn) |
-| [`Orchestral-Lead-Sheets/Bass-Clef/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Bass-Clef) | `.pdf` | 696 | Melody-only sheet music in Bass Clef (Cello, Trombone, Euphonium, Bassoon, Tuba) |
-| [`Orchestral-Lead-Sheets/Alto-Clef/`](file:///home/antigravity/SDA-Hymnal/Orchestral-Lead-Sheets/Alto-Clef) | `.pdf` | 696 | Melody-only sheet music in Alto Clef (Viola) |
+| [`Chords/ChordPro/`](file:///home/antigravity/SDA-Hymnal/Chords/ChordPro) | `.cho` | 696 | Standard ChordPro files (`{start_of_verse}`, `{title}`) + Master index file |
+| [`Chords/JustChords/`](file:///home/antigravity/SDA-Hymnal/Chords/JustChords) | `.cho` | 696 | Native JustChords format (`Verse 1:`, `Refrain:` tags) + Master index file |
+| [`Chords/PlainText/`](file:///home/antigravity/SDA-Hymnal/Chords/PlainText) | `.txt` | 695 | Space-aligned Chords-Over-Lyrics text for any text editor |
+| [`Chords/OnSong/`](file:///home/antigravity/SDA-Hymnal/Chords/OnSong) | `.onsong` | 695 | OnSong iPad/iOS/macOS worship presentation format |
+| [`Slides/OpenLyrics/`](file:///home/antigravity/SDA-Hymnal/Slides/OpenLyrics) | `.xml` | 695 | OpenLyrics 0.9 XML with `<chord name="..."/>` tags for OpenLP & FreeShow |
+| [`Slides/FreeShow/`](file:///home/antigravity/SDA-Hymnal/Slides/FreeShow) | `.show` | 696 | Native FreeShow presentation files with metadata, slide groups & layouts |
+| [`Chords/PDF-Chords/`](file:///home/antigravity/SDA-Hymnal/Chords/PDF-Chords) | `.pdf` | 695 | High-resolution 1-page printable vector chord charts |
+| [`Slides/ProPresenter/`](file:///home/antigravity/SDA-Hymnal/Slides/ProPresenter) | `.txt` | 695 | Slide-divided text ready for batch import into ProPresenter |
+| [`Sheet-Music/MusicXML/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/MusicXML) | `.musicxml` | 696 | Editable 4-part SATB harmony scores for MuseScore, Finale, Sibelius, Dorico |
+| [`Sheet-Music/Lead-Sheets/C-Concert-Treble/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/Lead-Sheets/C-Concert-Treble) | `.pdf` | 696 | Melody + chord symbols only (no lyrics), black & white in Concert Pitch (Flute, Violin, Oboe, Guitar, Piano) |
+| [`Sheet-Music/Lead-Sheets/Bb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/Lead-Sheets/Bb-Instruments) | `.pdf` | 696 | Melody + chord symbols only (no lyrics), black & white transposed +2 semitones (Trumpet, Clarinet, Tenor Sax) |
+| [`Sheet-Music/Lead-Sheets/Eb-Instruments/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/Lead-Sheets/Eb-Instruments) | `.pdf` | 696 | Melody + chord symbols only (no lyrics), black & white transposed +9 semitones (Alto Sax, Baritone Sax) |
+| [`Sheet-Music/Lead-Sheets/F-Instruments/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/Lead-Sheets/F-Instruments) | `.pdf` | 696 | Melody + chord symbols only (no lyrics), black & white transposed +7 semitones (French Horn) |
+| [`Sheet-Music/Lead-Sheets/Bass-Clef/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/Lead-Sheets/Bass-Clef) | `.pdf` | 696 | Melody + chord symbols only (no lyrics), black & white in Bass Clef (Cello, Trombone, Euphonium, Bassoon, Tuba) |
+| [`Sheet-Music/Lead-Sheets/Alto-Clef/`](file:///home/antigravity/SDA-Hymnal/Sheet-Music/Lead-Sheets/Alto-Clef) | `.pdf` | 696 | Melody + chord symbols only (no lyrics), black & white in Alto Clef (Viola) |
 
 ---
 

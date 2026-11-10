@@ -34,8 +34,8 @@ import hyphenate
 
 ROOT_DIR = Path("/home/antigravity/SDA-Hymnal")
 DB_DIR = ROOT_DIR / "Database"
-MIDI_DIR = ROOT_DIR / "midis"
-XML_DIR = ROOT_DIR / "MusicXML"
+MIDI_DIR = ROOT_DIR / "MIDI"
+XML_DIR = ROOT_DIR / "Sheet-Music" / "MusicXML"
 XML_DIR.mkdir(parents=True, exist_ok=True)
 
 KEY_FIFTHS = {

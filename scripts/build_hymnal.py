@@ -273,6 +273,13 @@ CHAR_WIDTHS = {
 }
 
 
+try:
+    import fitz as _fitz_mod
+    _fitz = _fitz_mod
+except Exception:  # pragma: no cover
+    _fitz = None
+
+
 def text_width_pt(text: str, font_size: float, bold: bool = False) -> float:
     scale = 1.04 if bold else 1.0
     total = sum(CHAR_WIDTHS.get(ch, 556) for ch in text)
@@ -341,71 +348,37 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
     ops: List[str] = []
 
-    # 1. Header Banner Background & Hymn Number Badge
-    # Subtle slate header card
-    ops.append("0.96 0.97 0.99 rg")
-    ops.append(f"{MARGIN_X:.1f} {TOP_Y - 54:.1f} {PAGE_W - 2*MARGIN_X:.1f} 54 re f")
+    # 1. Classic hymnal header: pure black on white, no rules or boxes
+    def tw(text: str, size: float, font: str) -> float:
+        if _fitz is not None:
+            return _fitz.get_text_length(text, fontname=font, fontsize=size)
+        return len(text) * size * 0.5
 
-    # Dark Navy Hymn Number Box on left
-    ops.append("0.11 0.21 0.36 rg")
-    ops.append(f"{MARGIN_X:.1f} {TOP_Y - 54:.1f} 58 54 re f")
+    ops.append("0 0 0 rg")
+    ops.append(f"BT /F5 26 Tf {MARGIN_X:.2f} {TOP_Y - 22:.2f} Td ({h['number']}) Tj ET")
 
-    # Hymn Number in white inside badge
-    ops.append("1 1 1 rg")
-    num_w = text_width_pt(num_str, 20.0, bold=True)
-    num_x = MARGIN_X + (58.0 - num_w) / 2.0
-    ops.append(f"BT /F2 20 Tf {num_x:.2f} {TOP_Y - 34:.2f} Td ({pdf_escape(num_str)}) Tj ET")
-    ops.append(f"BT /F1 6.5 Tf {MARGIN_X + 10:.2f} {TOP_Y - 46:.2f} Td (SDA HYMNAL) Tj ET")
+    title_sz = 20.0
+    while tw(h["title"], title_sz, "tibo") > PAGE_W - 2 * MARGIN_X - 120 and title_sz > 12:
+        title_sz -= 0.5
+    tx = (PAGE_W - tw(h["title"], title_sz, "tibo")) / 2.0
+    ops.append(f"BT /F5 {title_sz:.1f} Tf {tx:.2f} {TOP_Y - 20:.2f} Td ({pdf_escape(h['title'])}) Tj ET")
 
-    # Song Title & Credits (fit within available width before badges)
-    title_x = MARGIN_X + 68.0
-    avail_header_w = (PAGE_W - MARGIN_X - 168.0) - title_x
-    title_font_sz = 16.0
-    while text_width_pt(h["title"], title_font_sz, bold=True) > avail_header_w and title_font_sz > 11.5:
-        title_font_sz -= 0.5
+    left_txt = h["lyricist"] or ""
+    right_parts = [p for p in (h["tune"], h["composer"]) if p]
+    right_txt = ", ".join(right_parts)
+    sub_sz = 9.0
+    while tw(left_txt, sub_sz, "tiit") + tw(right_txt, sub_sz, "tiit") > PAGE_W - 2 * MARGIN_X - 20 and sub_sz > 6:
+        sub_sz -= 0.3
+    ops.append(f"BT /F6 {sub_sz:.1f} Tf {MARGIN_X:.2f} {TOP_Y - 42:.2f} Td ({pdf_escape(left_txt)}) Tj ET")
+    rx = PAGE_W - MARGIN_X - tw(right_txt, sub_sz, "tiit")
+    ops.append(f"BT /F6 {sub_sz:.1f} Tf {rx:.2f} {TOP_Y - 42:.2f} Td ({pdf_escape(right_txt)}) Tj ET")
 
-    ops.append("0.08 0.13 0.22 rg")
-    ops.append(f"BT /F2 {title_font_sz:.1f} Tf {title_x:.2f} {TOP_Y - 22:.2f} Td ({pdf_escape(h['title'])}) Tj ET")
-
-    ops.append("0.32 0.38 0.46 rg")
-    credits_str = f"Words: {h['lyricist']}  |  Music: {h['composer']} ({h['tune']})"
-    cred_font_sz = 8.2
-    while text_width_pt(credits_str, cred_font_sz, bold=False) > avail_header_w and cred_font_sz > 6.4:
-        cred_font_sz -= 0.3
-    ops.append(f"BT /F1 {cred_font_sz:.1f} Tf {title_x:.2f} {TOP_Y - 36:.2f} Td ({pdf_escape(credits_str)}) Tj ET")
-
-    cat_str = f"{h['category']} - {h['subcategory']}"
-    ops.append(f"BT /F3 7.8 Tf {title_x:.2f} {TOP_Y - 48:.2f} Td ({pdf_escape(cat_str)}) Tj ET")
-
-    # Right-side Key / Time / Tempo Badges
-    badge_right = PAGE_W - MARGIN_X - 8.0
-    badges = [
-        ("TEMPO", f"{h['tempo']} BPM", 58.0, (0.91, 0.94, 0.98), (0.15, 0.28, 0.48)),
-        ("TIME", h["time"], 44.0, (0.91, 0.94, 0.98), (0.15, 0.28, 0.48)),
-        ("KEY", h["key"], 46.0, (0.11, 0.29, 0.56), (1.0, 1.0, 1.0)),
-    ]
-    cur_bx = badge_right
-    for b_label, b_val, b_w, bg_rgb, fg_rgb in badges:
-        cur_bx -= b_w
-        ops.append(f"{bg_rgb[0]:.2f} {bg_rgb[1]:.2f} {bg_rgb[2]:.2f} rg")
-        ops.append(f"{cur_bx:.1f} {TOP_Y - 45:.1f} {b_w:.1f} 36 re f")
-        ops.append(f"{fg_rgb[0]:.2f} {fg_rgb[1]:.2f} {fg_rgb[2]:.2f} rg")
-        lbl_w = text_width_pt(b_label, 6.2, bold=True)
-        val_w = text_width_pt(b_val, 11.0, bold=True)
-        ops.append(
-            f"BT /F2 6.2 Tf {cur_bx + (b_w - lbl_w)/2:.2f} {TOP_Y - 19:.2f} Td ({pdf_escape(b_label)}) Tj ET"
-        )
-        ops.append(
-            f"BT /F2 11.0 Tf {cur_bx + (b_w - val_w)/2:.2f} {TOP_Y - 36:.2f} Td ({pdf_escape(b_val)}) Tj ET"
-        )
-        cur_bx -= 5.0
-
-    # Bottom accent line under header
-    ops.append("0.11 0.29 0.56 RG 1.2 w")
-    ops.append(f"{MARGIN_X:.1f} {TOP_Y - 54:.1f} m {PAGE_W - MARGIN_X:.1f} {TOP_Y - 54:.1f} l S")
+    info = f"Key of {h['key']}   {h['time']}   {h['tempo']}{' BPM' if str(h['tempo']).strip().isdigit() else ''}"
+    iw = tw(info, 8.5, "tiro")
+    ops.append(f"BT /F4 8.5 Tf {(PAGE_W - iw) / 2.0:.2f} {TOP_Y - 56:.2f} Td ({pdf_escape(info)}) Tj ET")
 
     # 2. Render Sections & Chords-Over-Lyrics Body
-    body_top_y = TOP_Y - 72.0
+    body_top_y = TOP_Y - 76.0
     col_w = (PAGE_W - 2 * MARGIN_X - 24.0) / 2.0 if use_two_cols else (PAGE_W - 2 * MARGIN_X)
 
     # Split sections across columns if 2-column
@@ -423,18 +396,10 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
             # Section Header Pill / Label
             sec_title_h = sec_title_size + 5.0
-            if is_chorus:
-                # Left vertical accent bar for Refrain/Chorus
-                total_sec_h = sec_title_h + len(sec["lines"]) * line_pair_h + 4.0
-                ops.append("0.97 0.98 1.00 rg")
-                ops.append(f"{sec_x - 6:.1f} {cur_y - total_sec_h + 8:.1f} {col_w - 6:.1f} {total_sec_h:.1f} re f")
-                ops.append("0.16 0.38 0.72 rg")
-                ops.append(f"{sec_x - 6:.1f} {cur_y - total_sec_h + 8:.1f} 2.5 {total_sec_h:.1f} re f")
-
-            ops.append("0.14 0.26 0.45 rg")
+            ops.append("0 0 0 rg")
             ops.append(
-                f"BT /F2 {sec_title_size:.1f} Tf {sec_x:.2f} {cur_y - sec_title_size:.2f} Td "
-                f"({pdf_escape(sec['name'].upper())}) Tj ET"
+                f"BT /F4 {sec_title_size:.1f} Tf {sec_x:.2f} {cur_y - sec_title_size:.2f} Td "
+                f"({pdf_escape(sec['name'])}) Tj ET"
             )
             cur_y -= (sec_title_size + 6.0)
 
@@ -469,16 +434,16 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
                 eff_chord_sz = chord_size * h_scale
                 eff_lyric_sz = lyric_size * h_scale
 
-                # Draw chords in bold navy blue
-                ops.append("0.11 0.32 0.68 rg")
+                # Draw chords in bold black
+                ops.append("0 0 0 rg")
                 for c_x, c_str in chord_pieces:
                     adj_cx = sec_x + (c_x - sec_x) * h_scale
                     ops.append(
                         f"BT /F2 {eff_chord_sz:.2f} Tf {adj_cx:.2f} {chord_y:.2f} Td ({pdf_escape(c_str)}) Tj ET"
                     )
 
-                # Draw lyric segments in crisp dark charcoal
-                ops.append("0.10 0.12 0.16 rg")
+                # Draw lyric segments in black
+                ops.append("0 0 0 rg")
                 font_tag = "/F3" if is_chorus else "/F1"
                 for l_x, l_str in lyric_pieces:
                     adj_lx = sec_x + (l_x - sec_x) * h_scale
@@ -491,11 +456,9 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
             cur_y -= sec_gap
 
     # 3. Footer
-    ops.append("0.75 0.78 0.82 RG 0.5 w")
-    ops.append(f"{MARGIN_X:.1f} {BOTTOM_Y + 10:.1f} m {PAGE_W - MARGIN_X:.1f} {BOTTOM_Y + 10:.1f} l S")
-    ops.append("0.45 0.50 0.56 rg")
-    footer_left = f"Seventh-day Adventist Hymnal #{num_str}  •  {h['title']} (Key of {h['key']}, {h['time']})"
-    ops.append(f"BT /F1 7.5 Tf {MARGIN_X:.2f} {BOTTOM_Y:.2f} Td ({pdf_escape(footer_left)}) Tj ET")
+    ops.append("0 0 0 rg")
+    footer_left = f"Seventh-day Adventist Hymnal #{num_str}"
+    ops.append(f"BT /F3 7.5 Tf {MARGIN_X:.2f} {BOTTOM_Y:.2f} Td ({pdf_escape(footer_left)}) Tj ET")
 
     stream_bytes = "\n".join(ops).encode("latin-1", errors="replace")
 
@@ -505,7 +468,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
     objects.append(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
     page_obj = (
         f"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PAGE_W:.0f} {PAGE_H:.0f}] "
-        f"/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R >> >> /Contents 7 0 R >>\nendobj\n"
+        f"/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 8 0 R /F5 9 0 R /F6 10 0 R >> >> /Contents 7 0 R >>\nendobj\n"
     ).encode("ascii")
     objects.append(page_obj)
     objects.append(b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n")
@@ -517,6 +480,9 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
         + b"\nendstream\nendobj\n"
     )
     objects.append(content_obj)
+    objects.append(b"8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>\nendobj\n")
+    objects.append(b"9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>\nendobj\n")
+    objects.append(b"10 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>\nendobj\n")
 
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
     offsets: List[int] = []
@@ -535,12 +501,12 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
 def build_all() -> None:
     dirs = {
-        "ChordPro": ROOT_DIR / "ChordPro",
-        "JustChords": ROOT_DIR / "JustChords",
-        "PlainText": ROOT_DIR / "PlainText",
-        "OnSong": ROOT_DIR / "OnSong",
-        "OpenLyrics": ROOT_DIR / "OpenLyrics",
-        "PDF-Chords": ROOT_DIR / "PDF-Chords",
+        "ChordPro": ROOT_DIR / "Chords" / "ChordPro",
+        "JustChords": ROOT_DIR / "Chords" / "JustChords",
+        "PlainText": ROOT_DIR / "Chords" / "PlainText",
+        "OnSong": ROOT_DIR / "Chords" / "OnSong",
+        "OpenLyrics": ROOT_DIR / "Slides" / "OpenLyrics",
+        "PDF-Chords": ROOT_DIR / "Chords" / "PDF-Chords",
     }
     for d in dirs.values():
         d.mkdir(parents=True, exist_ok=True)

@@ -12,8 +12,8 @@ from pathlib import Path
 import music21 as m21
 
 ROOT = Path("/home/antigravity/SDA-Hymnal")
-OUT_DIR = ROOT / "MusicXML"
-OUT_DIR.mkdir(exist_ok=True)
+OUT_DIR = ROOT / "Sheet-Music" / "MusicXML"
+OUT_DIR.mkdir(parents=True, exist_ok=True)
 
 db_files = sorted(glob.glob(str(ROOT / "Database/[0-9][0-9][0-9]*.json")))
 print(f"Generating editable MusicXML for {len(db_files)} hymns...")

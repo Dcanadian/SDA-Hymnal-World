@@ -44,7 +44,7 @@ from scripts.generate_satb_musicxml import (
 
 ROOT_DIR = Path("/home/antigravity/SDA-Hymnal")
 DB_DIR = ROOT_DIR / "Database"
-ORCH_DIR = ROOT_DIR / "Orchestral-Lead-Sheets"
+ORCH_DIR = ROOT_DIR / "Sheet-Music" / "Lead-Sheets"
 
 ORCH_PARTS = {
     "C-Concert-Treble": {
@@ -232,23 +232,13 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, v_sylls: list, part_cfg: dict
                 if trans_ch and (trans_ch != last_chord or cur_div == 0):
                     xml_parts.append(chord_to_xml(trans_ch))
                     last_chord = trans_ch
-                
-            # Lyrics (up to 4 verses)
-            lyric_blocks = []
-            for v_idx, v_s in enumerate(v_sylls[:4]):
-                if sop_note_counter < len(v_s):
-                    s_txt, s_tag = v_s[sop_note_counter]
-                    c_txt = s_txt.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-                    lyric_blocks.append(f'        <lyric number="{v_idx+1}"><syllabic>{s_tag}</syllabic><text>{c_txt}</text></lyric>')
-            lyrics_xml = '\n'.join(lyric_blocks) + '\n' if lyric_blocks else ''
-            sop_note_counter += 1
             
             xml_parts.append(f"""      <note>
         <pitch><step>{step}</step>{alter_tag}<octave>{octave}</octave></pitch>
         <duration>{dur_div}</duration>
         <voice>1</voice>
         <type>{ntype}</type>{dot_tag}
-{lyrics_xml}      </note>
+      </note>
 """)
             cur_div += dur_div
             

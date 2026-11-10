@@ -3,7 +3,7 @@
 Compress and optimize the 724-page SDA Hymnal (1985) score PDF so it is < 90 MB
 (safely under GitHub's 100 MB hard limit) while preserving high-contrast, razor-sharp
 legibility for all 724 pages of sheet music.
-Saves directly to /home/antigravity/SDA-Hymnal/SDA_Hymnal_1985.pdf for git inclusion.
+Saves directly to /home/antigravity/SDA-Hymnal/Sheet-Music/SDA_Hymnal_1985.pdf for git inclusion.
 """
 
 import os
@@ -13,8 +13,8 @@ from pathlib import Path
 from PIL import Image
 import pymupdf
 
-SRC_PDF = Path("/home/antigravity/SDA-Hymnal/reference_scores/SDA_Hymnal_1985.pdf")
-DEST_PDF = Path("/home/antigravity/SDA-Hymnal/SDA_Hymnal_1985.pdf")
+SRC_PDF = Path("/home/antigravity/SDA-Hymnal/Sheet-Music/reference_scores/SDA_Hymnal_1985.pdf")
+DEST_PDF = Path("/home/antigravity/SDA-Hymnal/Sheet-Music/SDA_Hymnal_1985.pdf")
 
 print(f"Reading source PDF: {SRC_PDF} ({SRC_PDF.stat().st_size / (1024*1024):.1f} MB)...")
 start_time = time.time()
