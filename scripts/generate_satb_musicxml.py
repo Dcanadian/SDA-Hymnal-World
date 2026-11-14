@@ -206,6 +206,21 @@ def duration_to_type(dur_div: int, divisions: int):
     return ntype, dot
 
 
+def split_duration_chunks(dur_div: int) -> list:
+    """Split compound/awkward division counts (divisions=4) into standard tied note durations."""
+    valid = (24, 16, 12, 8, 6, 4, 3, 2, 1)
+    if dur_div in valid or dur_div <= 0:
+        return [dur_div]
+    chunks = []
+    rem = dur_div
+    for v in valid:
+        while rem >= v:
+            chunks.append(v)
+            rem -= v
+    return chunks if chunks else [dur_div]
+
+
+
 def extract_satb_from_midi(num: int):
     mid_path = MIDI_DIR / f"{num:03d}.mid"
     if not mid_path.exists():
@@ -417,8 +432,11 @@ def build_hymnal_satb_score(json_file: str):
         num = h["number"]
         title = h["title"]
         safe_title = re.sub(r'[/\\:*?"<>|]', "", title).strip()
-        composer = h.get("composer", "")
-        lyricist = h.get("lyricist", "")
+        composer = h.get("composer", "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        lyricist = h.get("lyricist", "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        tune = h.get("tune", "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        meter = h.get("meter", "").replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+        xml_title = f"{num:03d} - {title}".replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
         key_str = h.get("key", "C")
         fifths = KEY_FIFTHS.get(key_str, 0)
         time_str = h.get("time", "4/4")
@@ -475,13 +493,52 @@ def build_hymnal_satb_score(json_file: str):
                     rel_dur = min(dur, m_end - st)
                     m_notes.append((rel_st, rel_dur, p, st))
             return m_notes
-            
+
+        def emit_tied_notes(step, alter_tag, octave, dur_div, voice, stem, lyrics_xml=""):
+            chunks = split_duration_chunks(dur_div)
+            out = []
+            for c_idx, ch_div in enumerate(chunks):
+                ntype, dot = duration_to_type(ch_div, divisions)
+                dot_tag = "<dot/>" if dot else ""
+                tie_tags = ""
+                notations_tag = ""
+                if len(chunks) > 1:
+                    if c_idx == 0:
+                        tie_tags = '        <tie type="start"/>\n'
+                        notations_tag = '        <notations><tied type="start"/></notations>\n'
+                    elif c_idx == len(chunks) - 1:
+                        tie_tags = '        <tie type="stop"/>\n'
+                        notations_tag = '        <notations><tied type="stop"/></notations>\n'
+                    else:
+                        tie_tags = '        <tie type="stop"/>\n        <tie type="start"/>\n'
+                        notations_tag = '        <notations><tied type="stop"/><tied type="start"/></notations>\n'
+                lyr = lyrics_xml if c_idx == 0 else ""
+                stem_xml = f"        <stem>{stem}</stem>\n" if stem else ""
+                out.append(f"""      <note>
+        <pitch>
+          <step>{step}</step>
+          {alter_tag}
+          <octave>{octave}</octave>
+        </pitch>
+        <duration>{ch_div}</duration>
+{tie_tags}        <voice>{voice}</voice>
+        <type>{ntype}</type>
+        {dot_tag}
+{stem_xml}{notations_tag}{lyr}      </note>
+""")
+            return "".join(out)
+
+        final_barline_xml = """      <barline location="right">
+        <bar-style>light-heavy</bar-style>
+      </barline>
+"""
+        sub_work = f"    <work-number>{tune} ({meter})</work-number>\n" if (tune or meter) else ""
         xml_parts = []
         header = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE score-partwise PUBLIC "-//Recordare//DTD MusicXML 4.0 Partwise//EN" "http://www.musicxml.org/dtds/partwise.dtd">
 <score-partwise version="4.0">
   <work>
-    <work-title>{num:03d} - {title}</work-title>
+{sub_work}    <work-title>{xml_title}</work-title>
   </work>
   <identification>
     <creator type="composer">{composer}</creator>
@@ -588,8 +645,6 @@ def build_hymnal_satb_score(json_file: str):
                     continue
                     
                 step, alter, octave = midi_to_pitch(pitch_val, fifths)
-                ntype, dot = duration_to_type(dur_div, divisions)
-                dot_tag = "<dot/>" if dot else ""
                 alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
                 
                 # DERIVE EXACT CHORD FROM VERTICAL NOTE STACK
@@ -611,19 +666,7 @@ def build_hymnal_satb_score(json_file: str):
                 lyrics_xml = "\n".join(lyric_blocks) + "\n" if lyric_blocks else ""
                 sop_note_counter += 1
                 
-                xml_parts.append(f"""      <note>
-        <pitch>
-          <step>{step}</step>
-          {alter_tag}
-          <octave>{octave}</octave>
-        </pitch>
-        <duration>{dur_div}</duration>
-        <voice>1</voice>
-        <type>{ntype}</type>
-        {dot_tag}
-        <stem>up</stem>
-{lyrics_xml}      </note>
-""")
+                xml_parts.append(emit_tied_notes(step, alter_tag, octave, dur_div, 1, "up", lyrics_xml))
                 cur_div += dur_div
                 
             if cur_div < meas_dur_div:
@@ -668,22 +711,8 @@ def build_hymnal_satb_score(json_file: str):
                     continue
                     
                 step, alter, octave = midi_to_pitch(pitch_val, fifths)
-                ntype, dot = duration_to_type(dur_div, divisions)
-                dot_tag = "<dot/>" if dot else ""
                 alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
-                xml_parts.append(f"""      <note>
-        <pitch>
-          <step>{step}</step>
-          {alter_tag}
-          <octave>{octave}</octave>
-        </pitch>
-        <duration>{dur_div}</duration>
-        <voice>2</voice>
-        <type>{ntype}</type>
-        {dot_tag}
-        <stem>down</stem>
-      </note>
-""")
+                xml_parts.append(emit_tied_notes(step, alter_tag, octave, dur_div, 2, "down"))
                 cur_div += dur_div
                 
             if cur_div < meas_dur_div:
@@ -698,6 +727,8 @@ def build_hymnal_satb_score(json_file: str):
         {dot_tag}
       </note>
 """)
+            if m_idx == num_measures - 1:
+                xml_parts.append(final_barline_xml)
             xml_parts.append('    </measure>\n')
         xml_parts.append('  </part>\n')
         
@@ -750,22 +781,8 @@ def build_hymnal_satb_score(json_file: str):
                     continue
                     
                 step, alter, octave = midi_to_pitch(pitch_val, fifths)
-                ntype, dot = duration_to_type(dur_div, divisions)
-                dot_tag = "<dot/>" if dot else ""
                 alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
-                xml_parts.append(f"""      <note>
-        <pitch>
-          <step>{step}</step>
-          {alter_tag}
-          <octave>{octave}</octave>
-        </pitch>
-        <duration>{dur_div}</duration>
-        <voice>1</voice>
-        <type>{ntype}</type>
-        {dot_tag}
-        <stem>up</stem>
-      </note>
-""")
+                xml_parts.append(emit_tied_notes(step, alter_tag, octave, dur_div, 1, "up"))
                 cur_div += dur_div
                 
             if cur_div < meas_dur_div:
@@ -810,22 +827,8 @@ def build_hymnal_satb_score(json_file: str):
                     continue
                     
                 step, alter, octave = midi_to_pitch(pitch_val, fifths)
-                ntype, dot = duration_to_type(dur_div, divisions)
-                dot_tag = "<dot/>" if dot else ""
                 alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
-                xml_parts.append(f"""      <note>
-        <pitch>
-          <step>{step}</step>
-          {alter_tag}
-          <octave>{octave}</octave>
-        </pitch>
-        <duration>{dur_div}</duration>
-        <voice>2</voice>
-        <type>{ntype}</type>
-        {dot_tag}
-        <stem>down</stem>
-      </note>
-""")
+                xml_parts.append(emit_tied_notes(step, alter_tag, octave, dur_div, 2, "down"))
                 cur_div += dur_div
                 
             if cur_div < meas_dur_div:
@@ -840,6 +843,8 @@ def build_hymnal_satb_score(json_file: str):
         {dot_tag}
       </note>
 """)
+            if m_idx == num_measures - 1:
+                xml_parts.append(final_barline_xml)
             xml_parts.append('    </measure>\n')
         xml_parts.append('  </part>\n')
         
@@ -919,20 +924,8 @@ def build_hymnal_satb_score(json_file: str):
                         trans_pitch -= 12
                         
                     step, alter, octave = midi_to_pitch(trans_pitch, p_fifths)
-                    ntype, dot = duration_to_type(dur_div, divisions)
-                    dot_tag = "<dot/>" if dot else ""
                     alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
-                    xml_parts.append(f"""      <note>
-        <pitch>
-          <step>{step}</step>
-          {alter_tag}
-          <octave>{octave}</octave>
-        </pitch>
-        <duration>{dur_div}</duration>
-        <voice>1</voice>
-        <type>{ntype}</type>
-        {dot_tag}
-      </note>\n""")
+                    xml_parts.append(emit_tied_notes(step, alter_tag, octave, dur_div, 1, None))
                     cur_div += dur_div
                     
                 if cur_div < meas_dur_div:
@@ -946,6 +939,8 @@ def build_hymnal_satb_score(json_file: str):
         <type>{rtype}</type>
         {dot_tag}
       </note>\n""")
+                if m_idx == num_measures - 1:
+                    xml_parts.append(final_barline_xml)
                 xml_parts.append('    </measure>\n')
             xml_parts.append('  </part>\n')
             

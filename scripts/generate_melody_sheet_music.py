@@ -37,7 +37,7 @@ sys.path.insert(0, '/home/antigravity/SDA-Hymnal')
 
 from scripts.generate_satb_musicxml import (
     KEY_FIFTHS, FLAT_PITCHES, SHARP_PITCHES, PITCH_CLASS,
-    midi_to_pitch, duration_to_type,
+    midi_to_pitch, duration_to_type, split_duration_chunks,
     extract_satb_from_midi, extract_syllables_from_sections,
     get_chord_for_note_stack, chord_to_xml
 )
@@ -173,7 +173,6 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, v_sylls: list, part_cfg: dict
   <part id="P1">
 """]
 
-    sop_note_counter = 0
     last_chord = None
 
     for m_idx in range(num_measures):
@@ -221,8 +220,6 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, v_sylls: list, part_cfg: dict
                 trans_pitch -= 12
                 
             step, alter, octave = midi_to_pitch(trans_pitch, transposed_fifths)
-            ntype, dot = duration_to_type(dur_div, divisions)
-            dot_tag = "<dot/>" if dot else ""
             alter_tag = f"<alter>{alter}</alter>" if alter != 0 else ""
             
             # Chord symbol (on the beat or start of measure)
@@ -233,12 +230,28 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, v_sylls: list, part_cfg: dict
                     xml_parts.append(chord_to_xml(trans_ch))
                     last_chord = trans_ch
             
-            xml_parts.append(f"""      <note>
+            chunks = split_duration_chunks(dur_div)
+            for c_idx, ch_div in enumerate(chunks):
+                ntype, dot = duration_to_type(ch_div, divisions)
+                dot_tag = "<dot/>" if dot else ""
+                tie_tags = ""
+                notations_tag = ""
+                if len(chunks) > 1:
+                    if c_idx == 0:
+                        tie_tags = '        <tie type="start"/>\n'
+                        notations_tag = '        <notations><tied type="start"/></notations>\n'
+                    elif c_idx == len(chunks) - 1:
+                        tie_tags = '        <tie type="stop"/>\n'
+                        notations_tag = '        <notations><tied type="stop"/></notations>\n'
+                    else:
+                        tie_tags = '        <tie type="stop"/>\n        <tie type="start"/>\n'
+                        notations_tag = '        <notations><tied type="stop"/><tied type="start"/></notations>\n'
+                xml_parts.append(f"""      <note>
         <pitch><step>{step}</step>{alter_tag}<octave>{octave}</octave></pitch>
-        <duration>{dur_div}</duration>
-        <voice>1</voice>
+        <duration>{ch_div}</duration>
+{tie_tags}        <voice>1</voice>
         <type>{ntype}</type>{dot_tag}
-      </note>
+{notations_tag}      </note>
 """)
             cur_div += dur_div
             
@@ -247,6 +260,8 @@ def render_lead_sheet_pdf(tk, h: dict, satb: dict, v_sylls: list, part_cfg: dict
             rtype, rdot = duration_to_type(rest_div, divisions)
             dot_tag = "<dot/>" if rdot else ""
             xml_parts.append(f'      <note><rest/><duration>{rest_div}</duration><type>{rtype}</type>{dot_tag}</note>\n')
+        if m_idx == num_measures - 1:
+            xml_parts.append('      <barline location="right"><bar-style>light-heavy</bar-style></barline>\n')
         xml_parts.append('    </measure>\n')
     xml_parts.append('  </part>\n</score-partwise>\n')
 

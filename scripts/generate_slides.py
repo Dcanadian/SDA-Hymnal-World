@@ -80,20 +80,58 @@ def is_chorus(sec) -> bool:
     return sec.get("type") in ("chorus", "refrain") or "chorus" in name or "refrain" in name
 
 
-def write_propresenter(h, base: str):
-    out = [f"Title:#{h['number']} {h['title']}", f"Author:{h.get('lyricist', '')}", "", "Tag",
-           f"SDA Hymnal #{h['number']}", h["title"], ""]
-    for sec in h["sections"]:
-        out.append(sec["name"])
-        for gi, grp in enumerate(section_slides(sec)):
-            out.extend(grp)
-            out.append("")
-    (PROPRESENTER_DIR / f"{base}.txt").write_text("\n".join(out).rstrip() + "\n", encoding="utf-8")
-
-
 def write_freeshow(h, base: str):
     num, title = h["number"], h["title"]
     slides, layout_slides = {}, []
+
+    # 1. Automatic Title Slide at the start of the hymn
+    credit_parts = []
+    if h.get("lyricist"):
+        credit_parts.append(f"Words: {h['lyricist']}")
+    if h.get("composer"):
+        credit_parts.append(f"Music: {h['composer']}")
+    credit_line = "  •  ".join(credit_parts)
+
+    info_parts = [p for p in (h.get("tune"), h.get("meter"), f"Key of {h['key']}" if h.get("key") else "", h.get("time")) if p]
+    info_line = "  •  ".join(info_parts)
+
+    title_lines_data = [
+        {
+            "align": "text-align:center;",
+            "text": [{"value": f"SDA Hymnal #{num}", "style": "font-size:44px;font-family:sans-serif;font-weight:600;line-height:1.4;opacity:0.85;"}],
+        },
+        {
+            "align": "text-align:center;",
+            "text": [{"value": title, "style": "font-size:74px;font-family:sans-serif;font-weight:700;line-height:1.3;"}],
+        },
+    ]
+    if credit_line:
+        title_lines_data.append({
+            "align": "text-align:center;",
+            "text": [{"value": credit_line, "style": "font-size:34px;font-family:sans-serif;font-style:italic;line-height:1.4;opacity:0.85;"}],
+        })
+    if info_line:
+        title_lines_data.append({
+            "align": "text-align:center;",
+            "text": [{"value": info_line, "style": "font-size:30px;font-family:sans-serif;line-height:1.4;opacity:0.75;"}],
+        })
+
+    slides["slide_title"] = {
+        "group": "Title",
+        "color": "#0f766e",
+        "settings": {"color": "", "resolution": {"width": 1920, "height": 1080}},
+        "children": [],
+        "notes": "",
+        "items": [{
+            "type": "text",
+            "lines": title_lines_data,
+            "style": "top:100px;left:100px;height:880px;width:1720px;",
+            "align": "align-items:center;",
+        }],
+    }
+    layout_slides.append({"id": "slide_title"})
+
+    # 2. Lyric slides (clean with lyrics only, 2-3 lines per slide)
     group_first = {}  # section index -> list of slide ids
     for idx, sec in enumerate(h["sections"]):
         chorus = is_chorus(sec)

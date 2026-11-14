@@ -80,16 +80,23 @@ def inline_to_chords_over_lyrics(line: str) -> Tuple[str, str]:
 def generate_chordpro(h: Dict) -> str:
     """Generate standard ChordPro (.cho) content."""
     num_str = f"{h['number']:03d}"
+    sub_parts = [f"SDA Hymnal #{num_str}"]
+    if h.get("tune"):
+        sub_parts.append(h["tune"])
+    if h.get("meter"):
+        sub_parts.append(h["meter"])
     lines = [
         f"{{title: {num_str} - {h['title']}}}",
-        f"{{subtitle: SDA Hymnal #{num_str} • {h['tune']}}}",
-        f"{{lyricist: {h['lyricist']}}}",
-        f"{{composer: {h['composer']}}}",
-        f"{{key: {h['key']}}}",
-        f"{{time: {h['time']}}}",
-        f"{{tempo: {h['tempo']}}}",
+        f"{{subtitle: {' • '.join(sub_parts)}}}",
+        f"{{lyricist: {h.get('lyricist', '')}}}",
+        f"{{composer: {h.get('composer', '')}}}",
+        f"{{key: {h.get('key', '')}}}",
+        f"{{time: {h.get('time', '')}}}",
+        f"{{tempo: {h.get('tempo', '')}}}",
         f"{{meta: hymn_number {h['number']}}}",
-        f"{{meta: category {h['category']} - {h['subcategory']}}}",
+        f"{{meta: tune {h.get('tune', '')}}}",
+        f"{{meta: meter {h.get('meter', '')}}}",
+        f"{{meta: category {h.get('category', '')} - {h.get('subcategory', '')}}}",
         ""
     ]
     for sec in h["sections"]:
@@ -107,43 +114,18 @@ def generate_chordpro(h: Dict) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def generate_justchords(h: Dict) -> str:
-    """
-    Generate native JustChords (.cho) content following the JustChords SongEditor spec:
-    - Metadata directives in curly braces at top
-    - Sections separated by an empty line
-    - Section label on its own line ending with a colon (e.g., 'Verse 1:', 'Refrain:')
-    - Inline [Chord]syllable notation with no mid-word hyphens
-    """
-    num_str = f"{h['number']:03d}"
-    lines = [
-        f"{{title: {num_str} - {h['title']}}}",
-        f"{{artist: Seventh-day Adventist Hymnal}}",
-        f"{{lyricist: {h['lyricist']}}}",
-        f"{{composer: {h['composer']}}}",
-        f"{{key: {h['key']}}}",
-        f"{{time: {h['time']}}}",
-        f"{{tempo: {h['tempo']}}}",
-        f"{{tag: {h['category']}}}",
-        f"{{tag: {h['subcategory']}}}",
-        ""
-    ]
-    for sec in h["sections"]:
-        lines.append(f"{sec['name']}:")
-        lines.extend(sec["lines"])
-        lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
-
-
 def generate_plaintext(h: Dict) -> str:
     """Generate Chords-Over-Lyrics PlainText (.txt) content."""
     num_str = f"{h['number']:03d}"
     header_title = f"{num_str} - {h['title']}"
-    meta_line = (
-        f"Key: {h['key']}  |  Time: {h['time']}  |  Tempo: {h['tempo']} BPM  |  "
-        f"Tune: {h['tune']}"
-    )
-    credits_line = f"Words: {h['lyricist']}  |  Music: {h['composer']}"
+    tempo_str = f"{h['tempo']} BPM" if str(h.get("tempo", "")).strip().isdigit() else str(h.get("tempo", ""))
+    meta_parts = [f"Key: {h.get('key', '')}", f"Time: {h.get('time', '')}", f"Tempo: {tempo_str}"]
+    if h.get("tune"):
+        meta_parts.append(f"Tune: {h['tune']}")
+    if h.get("meter"):
+        meta_parts.append(f"Meter: {h['meter']}")
+    meta_line = "  |  ".join(meta_parts)
+    credits_line = f"Words: {h.get('lyricist', '')}  |  Music: {h.get('composer', '')}"
     sep = "=" * max(len(header_title), len(meta_line), len(credits_line))
 
     lines = [
@@ -164,96 +146,8 @@ def generate_plaintext(h: Dict) -> str:
     return "\n".join(lines).rstrip() + "\n"
 
 
-def generate_onsong(h: Dict) -> str:
-    """Generate OnSong (.onsong) file content."""
-    num_str = f"{h['number']:03d}"
-    lines = [
-        f"{num_str} - {h['title']}",
-        f"{h['lyricist']} / {h['composer']}",
-        f"Key: {h['key']}",
-        f"Time: {h['time']}",
-        f"Tempo: {h['tempo']}",
-        f"Number: {h['number']}",
-        f"Topic: {h['category']} - {h['subcategory']}",
-        ""
-    ]
-    for sec in h["sections"]:
-        lines.append(f"{sec['name']}:")
-        lines.extend(sec["lines"])
-        lines.append("")
-    return "\n".join(lines).rstrip() + "\n"
-
-
-def generate_openlyrics(h: Dict) -> str:
-    """Generate OpenLyrics 0.9 XML (.xml) with inline <chord name="..."/> elements."""
-    num_str = f"{h['number']:03d}"
-    verse_order = []
-    verses_xml = []
-
-    for idx, sec in enumerate(h["sections"], start=1):
-        sec_type = sec.get("type", "verse")
-        if sec_type == "chorus":
-            v_name = "c1"
-        else:
-            # Extract number from "Verse N"
-            m = re.search(r"(\d+)", sec["name"])
-            v_name = f"v{m.group(1)}" if m else f"v{idx}"
-        verse_order.append(v_name)
-
-        xml_lines = []
-        for inline_line in sec["lines"]:
-            segs = parse_inline_line(inline_line)
-            parts = []
-            for chord, text in segs:
-                if chord:
-                    parts.append(f'<chord name="{html.escape(chord)}"/>')
-                if text:
-                    parts.append(html.escape(text))
-            xml_lines.append("".join(parts))
-
-        joined_lines = "<br/>\n      ".join(xml_lines)
-        verses_xml.append(
-            f'    <verse name="{v_name}">\n'
-            f'      <lines>\n'
-            f'      {joined_lines}\n'
-            f'      </lines>\n'
-            f'    </verse>'
-        )
-
-    order_str = " ".join(verse_order)
-    verses_block = "\n".join(verses_xml)
-    return f"""<?xml version='1.0' encoding='UTF-8'?>
-<song xmlns="http://openlyrics.info/namespace/2009/song" version="0.9">
-  <properties>
-    <titles>
-      <title>{html.escape(f"{num_str} - {h['title']}")}</title>
-      <title>{html.escape(h['title'])}</title>
-    </titles>
-    <authors>
-      <author type="words">{html.escape(h['lyricist'])}</author>
-      <author type="music">{html.escape(h['composer'])}</author>
-    </authors>
-    <songbooks>
-      <songbook name="Seventh-day Adventist Hymnal" entry="{h['number']}"/>
-    </songbooks>
-    <key>{html.escape(h['key'])}</key>
-    <tempo type="bpm">{h['tempo']}</tempo>
-    <timeSignature>{html.escape(h['time'])}</timeSignature>
-    <verseOrder>{order_str}</verseOrder>
-    <themes>
-      <theme>{html.escape(h['category'])}</theme>
-      <theme>{html.escape(h['subcategory'])}</theme>
-    </themes>
-  </properties>
-  <lyrics>
-{verses_block}
-  </lyrics>
-</song>
-"""
-
-
 # ============================================================================
-# Native Vector PDF 1.4 Generator for Clean Modern Worship Charts (1-Page)
+# Native Vector PDF 1.4 Generator for Clean Classic Worship Charts (1-Page)
 # ============================================================================
 
 # Approximate proportional character widths (in 1/1000 em) for Helvetica / Helvetica-Bold
@@ -290,7 +184,7 @@ def pdf_escape(text: str) -> str:
     """Convert Unicode punctuation to WinAnsi-safe equivalents and escape PDF parens."""
     replacements = {
         "—": "-", "–": "-", "’": "'", "‘": "'", "“": '"', "”": '"', "•": "-",
-        "À": "A", "Ö": "O", "Ü": "U", "à": "a", "ö": "o", "ü": "u", "é": "e"
+        "À": "A", "Ö": "O", "Ü": "U", "à": "a", "ö": "o", "ü": "u", "é": "e", "ë": "e", "ï": "i"
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
@@ -299,7 +193,7 @@ def pdf_escape(text: str) -> str:
 
 def generate_pdf_chart(h: Dict, out_path: Path) -> None:
     """
-    Render a 1-page US Letter (612 x 792 pt) Clean Modern Worship Chart PDF.
+    Render a 1-page US Letter (612 x 792 pt) Classic Hymnal Worship Chart PDF.
     Automatically selects 1-column or 2-column layout and scales font size
     so all verses and refrains fit on a single page with crisp proportional
     chord-above-syllable alignment and zero mid-word hyphens.
@@ -311,10 +205,6 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
     num_str = f"{h['number']:03d}"
     sections = h["sections"]
-    total_lines = sum(len(s["lines"]) for s in sections)
-    max_line_chars = max(
-        len(CHORD_RE.sub("", ln)) for s in sections for ln in s["lines"]
-    )
 
     # Pick the roomiest layout that fits one page: single column first, then two columns.
     # (lyric size, chord size, section-title size, line-pair height, section gap)
@@ -369,8 +259,8 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
     tx = (PAGE_W - tw(h["title"], title_sz, "tibo")) / 2.0
     ops.append(f"BT /F5 {title_sz:.1f} Tf {tx:.2f} {TOP_Y - 20:.2f} Td ({pdf_escape(h['title'])}) Tj ET")
 
-    left_txt = h["lyricist"] or ""
-    right_parts = [p for p in (h["tune"], h["composer"]) if p]
+    left_txt = h.get("lyricist") or ""
+    right_parts = [p for p in (h.get("tune"), h.get("meter"), h.get("composer")) if p]
     right_txt = ", ".join(right_parts)
     sub_sz = 9.0
     while tw(left_txt, sub_sz, "tiit") + tw(right_txt, sub_sz, "tiit") > PAGE_W - 2 * MARGIN_X - 20 and sub_sz > 6:
@@ -397,13 +287,13 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
         cur_y = body_top_y
         for sec in sec_list:
             is_chorus = sec.get("type") == "chorus"
-            sec_x = col_x + (12.0 if is_chorus else 0.0)
+            sec_x = col_x  # No extra indentation for chorus
 
-            # Section Header Pill / Label
-            sec_title_h = sec_title_size + 5.0
+            # Section Header Label (Bold Italic /F7 for Refrain/Chorus, Roman /F4 for Verses)
+            sec_hdr_font = "/F7" if is_chorus else "/F4"
             ops.append("0 0 0 rg")
             ops.append(
-                f"BT /F4 {sec_title_size:.1f} Tf {sec_x:.2f} {cur_y - sec_title_size:.2f} Td "
+                f"BT {sec_hdr_font} {sec_title_size:.1f} Tf {sec_x:.2f} {cur_y - sec_title_size:.2f} Td "
                 f"({pdf_escape(sec['name'])}) Tj ET"
             )
             cur_y -= (sec_title_size + 6.0)
@@ -434,7 +324,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 
                 # Guard against overflowing column width in 2-column mode
                 line_span = max(cur_x, min_next_chord_x) - sec_x
-                max_span = col_w - (18.0 if is_chorus else 6.0)
+                max_span = col_w - 6.0
                 h_scale = min(1.0, max_span / line_span) if line_span > 0 else 1.0
                 eff_chord_sz = chord_size * h_scale
                 eff_lyric_sz = lyric_size * h_scale
@@ -473,7 +363,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
     objects.append(b"2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
     page_obj = (
         f"3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {PAGE_W:.0f} {PAGE_H:.0f}] "
-        f"/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 8 0 R /F5 9 0 R /F6 10 0 R >> >> /Contents 7 0 R >>\nendobj\n"
+        f"/Resources << /Font << /F1 4 0 R /F2 5 0 R /F3 6 0 R /F4 8 0 R /F5 9 0 R /F6 10 0 R /F7 11 0 R >> >> /Contents 7 0 R >>\nendobj\n"
     ).encode("ascii")
     objects.append(page_obj)
     objects.append(b"4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>\nendobj\n")
@@ -488,6 +378,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
     objects.append(b"8 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>\nendobj\n")
     objects.append(b"9 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>\nendobj\n")
     objects.append(b"10 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-Italic /Encoding /WinAnsiEncoding >>\nendobj\n")
+    objects.append(b"11 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Times-BoldItalic /Encoding /WinAnsiEncoding >>\nendobj\n")
 
     out = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
     offsets: List[int] = []
