@@ -153,17 +153,13 @@ def write_freeshow(h, base: str):
 
 def main():
     FREESHOW_DIR.mkdir(parents=True, exist_ok=True)
-    PROPRESENTER_DIR.mkdir(parents=True, exist_ok=True)
-    for old in PROPRESENTER_DIR.glob("*.txt"):
-        old.unlink()
     files = sorted(glob.glob(str(DB_DIR / "[0-9][0-9][0-9]*.json")))
     for f in files:
         h = json.loads(Path(f).read_text(encoding="utf-8"))
         safe = re.sub(r'[/\\:*?"<>|]', "", h["title"]).strip()
         base = f"{h['number']:03d} - {safe}"
-        write_propresenter(h, base)
         write_freeshow(h, base)
-    print(f"Generated ProPresenter + FreeShow slides (2-3 lines each) for {len(files)} hymns.")
+    print(f"Generated FreeShow slides (2-3 lines each) for {len(files)} hymns.")
 
 
 if __name__ == "__main__":

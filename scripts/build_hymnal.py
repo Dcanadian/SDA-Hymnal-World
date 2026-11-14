@@ -507,10 +507,7 @@ def generate_pdf_chart(h: Dict, out_path: Path) -> None:
 def build_all() -> None:
     dirs = {
         "ChordPro": ROOT_DIR / "Chords" / "ChordPro",
-        "JustChords": ROOT_DIR / "Chords" / "JustChords",
         "PlainText": ROOT_DIR / "Chords" / "PlainText",
-        "OnSong": ROOT_DIR / "Chords" / "OnSong",
-        "OpenLyrics": ROOT_DIR / "Slides" / "OpenLyrics",
         "PDF-Chords": ROOT_DIR / "Chords" / "PDF-Chords",
     }
     for d in dirs.values():
@@ -518,7 +515,6 @@ def build_all() -> None:
 
     json_files = sorted(DB_DIR.glob("*.json"))
     master_chordpro_blocks: List[str] = []
-    master_justchords_blocks: List[str] = []
 
     for jf in json_files:
         h = json.loads(jf.read_text(encoding="utf-8"))
@@ -531,34 +527,18 @@ def build_all() -> None:
         (dirs["ChordPro"] / f"{base_name}.cho").write_text(cho_text, encoding="utf-8")
         master_chordpro_blocks.append("{new_song}\n" + cho_text)
 
-        # 2. JustChords (.cho)
-        jc_text = generate_justchords(h)
-        (dirs["JustChords"] / f"{base_name}.cho").write_text(jc_text, encoding="utf-8")
-        master_justchords_blocks.append("{new_song}\n" + jc_text)
-
-        # 3. PlainText (.txt)
+        # 2. PlainText (.txt)
         txt_text = generate_plaintext(h)
         (dirs["PlainText"] / f"{base_name}.txt").write_text(txt_text, encoding="utf-8")
 
-        # 4. OnSong (.onsong)
-        onsong_text = generate_onsong(h)
-        (dirs["OnSong"] / f"{base_name}.onsong").write_text(onsong_text, encoding="utf-8")
-
-        # 5. OpenLyrics (.xml)
-        xml_text = generate_openlyrics(h)
-        (dirs["OpenLyrics"] / f"{base_name}.xml").write_text(xml_text, encoding="utf-8")
-
-        # 6. Printable PDF Chord Chart (.pdf)
+        # 3. Printable PDF Chord Chart (.pdf)
         generate_pdf_chart(h, dirs["PDF-Chords"] / f"{base_name}.pdf")
 
-    # Write bulk-import master files
+    # Write bulk-import master file
     (dirs["ChordPro"] / "000 - SDA Hymnal Master.cho").write_text(
         "\n".join(master_chordpro_blocks), encoding="utf-8"
     )
-    (dirs["JustChords"] / "000 - SDA Hymnal JustChords Master.cho").write_text(
-        "\n".join(master_justchords_blocks), encoding="utf-8"
-    )
-    print(f"Successfully compiled {len(json_files)} hymns across all 6 formats!")
+    print(f"Successfully compiled {len(json_files)} hymns across ChordPro, PlainText, and PDF-Chords!")
 
 
 if __name__ == "__main__":
